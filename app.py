@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
 from utils.extensions import db, login_manager, mail
-from utils.database.config import Config
+from config import Config
 from models import User  # Import models needed for init_db
 import os
 from flask_migrate import Migrate
