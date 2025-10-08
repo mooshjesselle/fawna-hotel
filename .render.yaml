@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: fawna-hotel
+    env: python
+    pythonVersion: 3.12
+    buildCommand: bash build.sh
+    startCommand: gunicorn app:app
