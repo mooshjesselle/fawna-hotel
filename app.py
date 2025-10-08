@@ -4,12 +4,7 @@ from utils.extensions import db, login_manager, mail
 from utils.database.config import Config
 from models import User  # Import models needed for init_db
 import os
-from flask_session import Session
-from flask_sqlalchemy import SQLAlchemy
-from flask_login import LoginManager
-from flask_mail import Mail
 from flask_migrate import Migrate
-from blueprints.api_routes import api
 
 def create_app():
     app = Flask(__name__)
@@ -20,22 +15,13 @@ def create_app():
     # Set FOOD_SERVICE_IPV4 from .env
     app.config['FOOD_SERVICE_IPV4'] = os.getenv('FOOD_SERVICE_IPV4')  # <-- add this
     
-    # Configure session
-    app.config['SESSION_TYPE'] = 'filesystem'  # Use filesystem for server-side sessions
-    app.config['SESSION_PERMANENT'] = False
-    app.config['SESSION_USE_SIGNER'] = True
+    # Configure session - using Flask's built-in session
     app.secret_key = 'your_secret_key_here'  # Replace with a strong secret key
-    Session(app)
-    
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
     
     # Configure upload folder
     app.config['UPLOAD_FOLDER'] = os.path.join(app.static_folder, 'room_images')
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    
-    # Mobile App API
-    app.register_blueprint(api)
     
     # Initialize extensions
     db.init_app(app)
@@ -44,8 +30,6 @@ def create_app():
     mail.init_app(app)
     csrf = CSRFProtect(app)
     
-    login_manager.login_view = 'login'
-    login_manager.login_message_category = 'info'
     
     @login_manager.user_loader
     def load_user(user_id):

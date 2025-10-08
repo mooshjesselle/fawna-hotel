@@ -15,7 +15,6 @@ from utils.extensions import mail
 import re
 import random
 import string
-from flask_session import Session
 from utils.notifications import (
     create_notification,
     create_booking_notification,
@@ -3059,12 +3058,6 @@ print("Available routes:")
 for rule in app.url_map.iter_rules():
     print(f"{rule.endpoint}: {rule.rule}")
 
-# Configure session
-app.config['SESSION_TYPE'] = 'filesystem'  # Use filesystem for server-side sessions
-app.config['SESSION_PERMANENT'] = False
-app.config['SESSION_USE_SIGNER'] = True
-app.secret_key = 'your_secret_key_here'  # Replace with a strong secret key
-Session(app)
 
 @app.after_request
 def add_cache_control_headers(response):
