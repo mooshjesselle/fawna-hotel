@@ -18,6 +18,7 @@ class Config:
     
     # Database Configuration
     SQLALCHEMY_DATABASE_URI = 'sqlite:///hotel.db'
+    #postgresql://hotel_management_vn0f_user:16vy8Pos14Yu7NZp1EXObKqaZaoGU7vq@dpg-d3j1103e5dus739fd33g-a.singapore-postgres.render.com/hotel_management_vn0f
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Timezone Configuration
