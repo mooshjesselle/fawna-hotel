@@ -17,18 +17,8 @@ class Config:
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
     
     # Database Configuration
-    # Use PostgreSQL for production (Render), SQLite for development
-    if os.getenv('DATABASE_URL'):
-        # Production database (Render provides DATABASE_URL)
-        # Convert postgres:// to postgresql:// for psycopg compatibility
-        database_url = os.getenv('DATABASE_URL')
-        if database_url.startswith('postgres://'):
-            database_url = database_url.replace('postgres://', 'postgresql://', 1)
-        SQLALCHEMY_DATABASE_URI = database_url
-    else:
-        # Development database
-        SQLALCHEMY_DATABASE_URI = 'sqlite:///hotel.db'
-    
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///hotel.db'
+    #postgresql://hotel_management_vn0f_user:16vy8Pos14Yu7NZp1EXObKqaZaoGU7vq@dpg-d3j1103e5dus739fd33g-a.singapore-postgres.render.com/hotel_management_vn0f
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Timezone Configuration
