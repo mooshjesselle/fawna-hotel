@@ -217,11 +217,17 @@ def send_verification_email():
         }
         
         # Send verification email
-        msg = Message('Email Verification - FAWNA Hotel',
-                     recipients=[email])
-        msg.html = render_template('auth/email/verification_code.html',
-                                 code=verification_code)
-        mail.send(msg)
+        try:
+            msg = Message('Email Verification - FAWNA Hotel',
+                         recipients=[email])
+            msg.html = render_template('auth/email/verification_code.html',
+                                     code=verification_code)
+            print(f"DEBUG: Attempting to send email to {email}")
+            mail.send(msg)
+            print(f"DEBUG: Email sent successfully to {email}")
+        except Exception as email_error:
+            print(f"DEBUG: Email sending failed: {str(email_error)}")
+            raise email_error
         
         return jsonify({
             'success': True,
@@ -3064,7 +3070,78 @@ def add_cache_control_headers(response):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     response.headers["Pragma"] = "no-cache"
     response.headers["Expires"] = "0"
-    return response 
+    return response
+
+@app.route('/debug/health')
+def debug_health():
+    """Debug endpoint to check system health"""
+    try:
+        import os
+        from sqlalchemy import inspect
+        
+        health_info = {
+            'status': 'healthy',
+            'database_url': '✅ Set' if os.getenv('DATABASE_URL') else '❌ Not set',
+            'mail_username': '✅ Set' if os.getenv('MAIL_USERNAME') else '❌ Not set',
+            'mail_password': '✅ Set' if os.getenv('MAIL_PASSWORD') else '❌ Not set',
+            'flask_secret_key': '✅ Set' if os.getenv('FLASK_SECRET_KEY') else '❌ Not set'
+        }
+        
+        # Test database
+        try:
+            inspector = inspect(db.engine)
+            tables = inspector.get_table_names()
+            health_info['database_tables'] = tables
+            health_info['database_status'] = '✅ Connected'
+        except Exception as e:
+            health_info['database_status'] = f'❌ Error: {str(e)}'
+            health_info['status'] = 'unhealthy'
+        
+        return jsonify(health_info)
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500
+
+@app.route('/debug/test-email')
+def debug_test_email():
+    """Debug endpoint to test email sending"""
+    try:
+        from flask_mail import Message
+        import random
+        import string
+        
+        # Generate test code
+        test_code = ''.join(random.choices(string.digits, k=6))
+        
+        # Create test email
+        msg = Message('Test Email Verification - FAWNA Hotel',
+                     recipients=['test@example.com'])
+        msg.html = render_template('auth/email/verification_code.html',
+                                 code=test_code)
+        
+        # Try to send (but don't actually send to avoid spam)
+        # mail.send(msg)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Email would be sent successfully',
+            'test_code': test_code,
+            'mail_config': {
+                'server': app.config.get('MAIL_SERVER'),
+                'port': app.config.get('MAIL_PORT'),
+                'username': app.config.get('MAIL_USERNAME'),
+                'password_set': bool(app.config.get('MAIL_PASSWORD'))
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'error': str(e)
+        }), 500 
 
 def send_verification_email(email, code):
     try:

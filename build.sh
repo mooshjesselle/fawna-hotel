@@ -12,10 +12,5 @@ pip install -r requirements.txt
 # Initialize database if DATABASE_URL is set (production)
 if [ ! -z "$DATABASE_URL" ]; then
     echo "Initializing database for production..."
-    python -c "
-from app import app, db
-with app.app_context():
-    db.create_all()
-    print('Database tables created successfully')
-"
+    python init_db.py
 fi
