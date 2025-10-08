@@ -27,6 +27,9 @@ def create_app():
     app.secret_key = 'your_secret_key_here'  # Replace with a strong secret key
     Session(app)
     
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    
     # Configure upload folder
     app.config['UPLOAD_FOLDER'] = os.path.join(app.static_folder, 'room_images')
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
