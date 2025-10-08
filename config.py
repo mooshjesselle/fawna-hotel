@@ -20,7 +20,11 @@ class Config:
     # Use PostgreSQL for production (Render), SQLite for development
     if os.getenv('DATABASE_URL'):
         # Production database (Render provides DATABASE_URL)
-        SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URL')
+        # Convert postgres:// to postgresql:// for psycopg compatibility
+        database_url = os.getenv('DATABASE_URL')
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        SQLALCHEMY_DATABASE_URI = database_url
     else:
         # Development database
         SQLALCHEMY_DATABASE_URI = 'sqlite:///hotel.db'
