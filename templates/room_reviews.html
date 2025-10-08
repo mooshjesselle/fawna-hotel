@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+
+{% block title %}Reviews for {{ room.room_type.name }} {{ room.room_number }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .comment-card {
+        position: relative;
+        border-left: 4px solid var(--secondary-color);
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #f9f9f9;
+        border-radius: 0 5px 5px 0;
+        transition: all 0.3s ease;
+    }
+    
+    .comment-card:hover {
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    }
+    
+    .admin-controls {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        display: flex;
+        gap: 10px;
+    }
+    
+    .admin-controls .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .delete-comment-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+    }
+    
+    .delete-comment-btn:hover {
+        background-color: #bd2130;
+    }
+    
+    .confirmation-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .confirmation-dialog {
+        background-color: white;
+        border-radius: 5px;
+        padding: 20px;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .confirmation-dialog h4 {
+        margin-bottom: 15px;
+    }
+    
+    .confirmation-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1>Reviews for Room {{ room.room_number }}</h1>
+                <a href="{{ url_for('room_detail', room_id=room.id) }}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left"></i> Back to Room
+                </a>
+            </div>
+            
+            <div class="room-summary mb-5">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
+                                {% if room.image %}
+                                <img src="{{ url_for('static', filename=room.image) }}" alt="{{ room.room_type.name }}" class="img-fluid rounded room-reviews-image">
+                                {% else %}
+                                <div class="placeholder-image bg-light d-flex align-items-center justify-content-center rounded" style="height: 200px;">
+                                    <span class="text-muted">No image available</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-8">
+                                <h3>{{ room.room_type.name }}</h3>
+                                <p class="text-muted">Room {{ room.room_number }}, Floor {{ room.floor }}</p>
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="star-rating-display me-2">
+                                        {% for i in range(5) %}
+                                            {% if i < avg_rating|int %}
+                                                <span class="star filled">★</span>
+                                            {% elif i < avg_rating and i >= avg_rating|int %}
+                                                <span class="star half-filled">★</span>
+                                            {% else %}
+                                                <span class="star">☆</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <span class="rating-value fw-bold">{{ "%.1f"|format(avg_rating) }}</span>
+                                    <span class="text-muted ms-2">({{ comments|length }} reviews)</span>
+                                </div>
+                                <p>{{ room.room_type.description }}</p>
+                                <p class="price">₱{{ "%.2f"|format(room.room_type.price_per_night) }} per night</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="reviews-container">
+                <h3>Guest Reviews</h3>
+                
+                {% if comments %}
+                    {% for comment in comments %}
+                    <div class="comment-card mb-4" id="comment-{{ comment.id }}">
+                        <div class="d-flex justify-content-between">
+                            <h5>{{ comment.author }}</h5>
+                            <small class="text-muted">{{ comment.date }}</small>
+                        </div>
+                        <div class="rating mb-2">
+                            {% for i in range(5) %}
+                                {% if i < comment.rating %}
+                                    <span>★</span>
+                                {% else %}
+                                    <span style="color:#ddd">☆</span>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <p class="review-content">{{ comment.content }}</p>
+                        
+                        {% if current_user.is_authenticated and current_user.is_admin %}
+                        <div class="admin-controls">
+                            <button class="btn btn-sm delete-comment-btn" onclick="confirmDeleteComment('{{ comment.id }}')">
+                                <i class="fas fa-trash-alt"></i> Delete
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="no-reviews">
+                        <p>No reviews yet for this room.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Dialog -->
+<div id="deleteConfirmation" class="confirmation-overlay">
+    <div class="confirmation-dialog">
+        <h4>Delete Comment</h4>
+        <p>Are you sure you want to delete this comment? This action cannot be undone.</p>
+        <div class="confirmation-buttons">
+            <button class="btn btn-secondary" onclick="closeConfirmation()">Cancel</button>
+            <button class="btn btn-danger" onclick="deleteComment()">Delete</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let commentIdToDelete = null;
+    
+    function confirmDeleteComment(commentId) {
+        commentIdToDelete = commentId;
+        document.getElementById('deleteConfirmation').style.display = 'flex';
+    }
+    
+    function closeConfirmation() {
+        document.getElementById('deleteConfirmation').style.display = 'none';
+    }
+    
+    function deleteComment() {
+        if (!commentIdToDelete) return;
+        
+        fetch(`/admin/comments/${commentIdToDelete}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the comment element from the DOM
+                const commentElement = document.getElementById(`comment-${commentIdToDelete}`);
+                if (commentElement) {
+                    commentElement.style.opacity = '0';
+                    setTimeout(() => {
+                        commentElement.remove();
+                        
+                        // Check if there are any comments left
+                        const remainingComments = document.querySelectorAll('.comment-card');
+                        if (remainingComments.length === 0) {
+                            // Create "no reviews" message
+                            const reviewsContainer = document.querySelector('.reviews-container');
+                            const noReviews = document.createElement('div');
+                            noReviews.className = 'no-reviews';
+                            noReviews.innerHTML = '<p>No reviews yet for this room.</p>';
+                            reviewsContainer.appendChild(noReviews);
+                        }
+                    }, 300);
+                }
+                
+                // Update the review count
+                const reviewCountEl = document.querySelector('.text-muted.ms-2');
+                if (reviewCountEl) {
+                    const currentCount = parseInt(reviewCountEl.textContent.match(/\d+/)[0]);
+                    const newCount = Math.max(0, currentCount - 1);
+                    reviewCountEl.textContent = `(${newCount} reviews)`;
+                }
+                
+                // Show success message
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success';
+                successAlert.innerHTML = '<i class="fas fa-check-circle"></i> Comment deleted successfully.';
+                document.querySelector('.reviews-container').prepend(successAlert);
+                
+                setTimeout(() => {
+                    successAlert.style.opacity = '0';
+                    setTimeout(() => successAlert.remove(), 300);
+                }, 3000);
+            } else {
+                // Show error message
+                alert('Error deleting comment: ' + data.message);
+            }
+            
+            closeConfirmation();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while deleting the comment. Please try again.');
+            closeConfirmation();
+        });
+    }
+    
+    // Close confirmation dialog when clicking outside
+    document.getElementById('deleteConfirmation').addEventListener('click', function(event) {
+        if (event.target === this) {
+            closeConfirmation();
+        }
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,38 @@
+/* Font Awesome 6.0.0 - Local Fallback */
+@font-face{font-family:"Font Awesome 6 Free";font-style:normal;font-weight:900;font-display:block;src:url("data:font/woff2;base64,") format("woff2")}
+.fas,.fa-solid{font-family:"Font Awesome 6 Free";font-weight:900}
+.fa-wifi:before{content:"\f1eb"}
+.fa-bell:before{content:"\f0f3"}
+.fa-user:before{content:"\f007"}
+.fa-bed:before{content:"\f236"}
+.fa-envelope:before{content:"\f0e0"}
+.fa-sms:before{content:"\f7cd"}
+.fa-map-marker-alt:before{content:"\f3c5"}
+.fa-utensils:before{content:"\f2e7"}
+.fa-shopping-cart:before{content:"\f07a"}
+.fa-plus:before{content:"\f067"}
+.fa-minus:before{content:"\f068"}
+.fa-check:before{content:"\f00c"}
+.fa-times:before{content:"\f00d"}
+.fa-edit:before{content:"\f044"}
+.fa-trash:before{content:"\f1f8"}
+.fa-eye:before{content:"\f06e"}
+.fa-sign-out-alt:before{content:"\f2f5"}
+.fa-home:before{content:"\f015"}
+.fa-phone:before{content:"\f095"}
+.fa-star:before{content:"\f005"}
+.fa-heart:before{content:"\f004"}
+.fa-search:before{content:"\f002"}
+.fa-calendar:before{content:"\f133"}
+.fa-clock:before{content:"\f017"}
+.fa-money-bill:before{content:"\f0d6"}
+.fa-credit-card:before{content:"\f09d"}
+.fa-qrcode:before{content:"\f029"}
+.fa-external-link-alt:before{content:"\f35d"}
+.fa-spinner:before{content:"\f110"}
+.fa-check-circle:before{content:"\f058"}
+.fa-exclamation-triangle:before{content:"\f071"}
+.fa-info-circle:before{content:"\f05a"}
+.fa-question-circle:before{content:"\f059"}
+.fa-spinner.fa-spin:before{animation:fa-spin 2s infinite linear}
+@keyframes fa-spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}

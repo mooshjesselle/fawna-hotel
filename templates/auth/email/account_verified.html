@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 30px;
+            margin-top: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #8D6E63;
+            margin: 0;
+            padding: 0;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #8D6E63;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .button:hover {
+            background-color: #6D4C41;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Account Verified!</h1>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ user.name }},</p>
+            
+            <p>Great news! Your account at FAWNA Hotel has been verified by our administrators. You can now log in and access all our services.</p>
+            
+            <p>Here's what you can do now:</p>
+            <ul>
+                <li>Book rooms and accommodations</li>
+                <li>View and manage your bookings</li>
+                <li>Access special offers and promotions</li>
+                <li>Update your profile information</li>
+            </ul>
+            
+            <center>
+                <a href="{{ login_url }}" class="button">Login to Your Account</a>
+            </center>
+        </div>
+        
+        <div class="footer">
+            <p>If you have any questions, please don't hesitate to contact our support team.</p>
+            <p>Thank you for choosing FAWNA Hotel!</p>
+        </div>
+    </div>
+</body>
+</html> 

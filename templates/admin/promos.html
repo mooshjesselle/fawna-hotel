@@ -1,0 +1,231 @@
+{% extends 'admin/base_admin.html' %}
+{% block admin_content %}
+<style>
+.btn-view {
+    background: linear-gradient(135deg, #42A5F5, #64B5F6);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: background 0.3s;
+}
+.btn-view:hover {
+    background: linear-gradient(135deg, #2196F3, #42A5F5);
+    color: white;
+}
+
+
+.btn-edit {
+    background: linear-gradient(135deg, #ffc107, #ffcc00);
+    color: white;
+    border: none;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+.btn-edit:hover {
+    background: linear-gradient(135deg, #e0a800, #ffcc00);
+    color: white;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    font-weight: 500;
+    border-radius: 4px;
+    transition: background 0.3s;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+    color: white;
+}
+
+.btn-add-promo {
+    background: linear-gradient(135deg, #42A5F5, #64B5F6);
+    color: white;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 1.05rem;
+    transition: background 0.3s;
+    display: inline-block;
+    margin-bottom: 1rem;
+    text-decoration: none !important;
+    box-shadow: 0 2px 8px rgba(66, 165, 245, 0.10);
+}
+.btn-add-promo:hover {
+    background: linear-gradient(135deg, #2196F3, #42A5F5);
+    color: white;
+    text-decoration: none !important;
+}
+
+
+
+.action-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+}
+.action-buttons .btn {
+    width: 100%;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    padding: 0;
+    font-size: 16px;
+    transition: box-shadow 0.2s;
+    border-radius: 0;
+}
+.action-buttons .btn i {
+    font-size: 16px;
+}
+.promo-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+.action-buttons form {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+}
+.action-buttons form button {
+    width: 100%;
+}
+.available-badge {
+    background-color: #28a745 !important;
+    color: white;
+}
+.occupied-badge {
+    background-color: #dc3545 !important;
+    color: white;
+}
+.promo-img {
+    height: 260px;
+    width: 100%;
+    background: #f8f8f8;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.promo-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+</style>
+<div class="container mt-4">
+    <div class="promo-header">
+    <h2>Manage Promos</h2>
+        <a href="{{ url_for('admin_add_promo') }}" class="btn-add-promo">
+            <i class="fas fa-plus" style="margin-right: 8px;"></i> Add New Promo
+        </a>
+    </div>
+    <div class="row">
+        {% if promos|length == 0 %}
+        <div class="col-12 text-center text-muted py-5">
+            <i class="fas fa-tags fa-2x mb-2"></i><br>
+            No promos available.
+        </div>
+        {% else %}
+        {% for promo in promos %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="promo-img d-flex align-items-center justify-content-center text-muted">
+                    {% if promo.image and promo.image.strip() %}
+                        <img src="{{ url_for('static', filename=promo.image) }}" alt="Promo Image">
+                    {% else %}
+                        <div class="default-room-image">
+                            <i class="fas fa-bed fa-3x text-secondary"></i>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ promo.title }}</h5>
+                    <p class="card-text">{{ promo.description }}</p>
+                    <p class="card-text"><small class="text-muted">Validity: {{ promo.start_date }} - {{ promo.end_date }}</small></p>
+                    <p class="card-text">
+                        <span class="badge {{ 'available-badge' if promo.is_active else 'occupied-badge' }}">
+                            {{ 'Available' if promo.is_active else 'Unavailable' }}
+                        </span>
+                    </p>
+                    <p class="card-text"><strong>Discount:</strong> {{ promo.discount_percentage|default(0) }}%</p>
+                </div>
+                <div class="card-footer d-flex justify-content-between action-buttons">
+                    <a href="#" class="btn btn-view view-promo-btn" title="View Promo"
+                       data-image="{{ url_for('static', filename=promo.image) if promo.image else '' }}"
+                       data-title="{{ promo.title }}"
+                       data-description="{{ promo.description }}"
+                       data-start="{{ promo.start_date }}"
+                       data-end="{{ promo.end_date }}"
+                       data-discount="{{ promo.discount_percentage|default(0) }}"
+                       data-status="{{ 'Active' if promo.is_active else 'Inactive' }}">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{{ url_for('admin_edit_promo', promo_id=promo.id) }}" class="btn btn-edit" title="Edit Promo" aria-label="Edit Promo">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
+                        <span class="visually-hidden">Edit</span>
+                    </a>
+                    <form action="{{ url_for('admin_delete_promo', promo_id=promo.id) }}" method="post" style="display:inline;">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-delete" title="Delete Promo" aria-label="Delete Promo" onclick="return confirm('Are you sure you want to delete this promo?');">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                            <span class="visually-hidden">Delete</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+</div>
+<!-- Promo View Modal -->
+<div class="modal fade" id="viewPromoModal" tabindex="-1" aria-labelledby="viewPromoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewPromoModalLabel">Promo Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="promoModalImage" src="" alt="Promo Image" class="img-fluid mb-3" style="max-height:220px;object-fit:cover;border-radius:8px;">
+        <h4 id="promoModalTitle"></h4>
+        <p id="promoModalDescription" class="mb-2"></p>
+        <div class="mb-2"><strong>Validity:</strong> <span id="promoModalDates"></span></div>
+        <div class="mb-2"><strong>Status:</strong> <span id="promoModalStatus"></span></div>
+        <div><strong>Discount:</strong> <span id="promoModalDiscount"></span>%</div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.view-promo-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      document.getElementById('promoModalImage').src = btn.getAttribute('data-image') || '';
+      document.getElementById('promoModalTitle').textContent = btn.getAttribute('data-title') || '';
+      document.getElementById('promoModalDescription').textContent = btn.getAttribute('data-description') || '';
+      document.getElementById('promoModalDates').textContent = btn.getAttribute('data-start') + ' - ' + btn.getAttribute('data-end');
+      document.getElementById('promoModalStatus').textContent = btn.getAttribute('data-status');
+      document.getElementById('promoModalDiscount').textContent = btn.getAttribute('data-discount');
+      var modal = new bootstrap.Modal(document.getElementById('viewPromoModal'));
+      modal.show();
+    });
+  });
+});
+</script>
+{% endblock %} 

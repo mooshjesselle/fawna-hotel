@@ -1,0 +1,1243 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+{% endblock %}
+
+{% block content %}
+
+<div class="dashboard-container">
+    {# User data and approved bookings are now in base.html #}
+    <input type="hidden" id="user-address" value="Santa Cruz, Laguna">
+    {# Food Service Unavailability Alert #}
+    {% if food_service_unavailable %}
+    <div class="alert alert-warning d-flex align-items-center" role="alert" style="margin-bottom: 24px;">
+        <i class="fas fa-utensils fa-lg me-2"></i>
+        <div>
+            <strong>Food Service Unavailable:</strong> We’re sorry, but our food service is currently unavailable. Please try again later or contact the front desk for assistance.
+        </div>
+    </div>
+    {% endif %}
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+        <h1>Welcome, {{ current_user.name }}!</h1>
+        <p>Manage your bookings and explore our available rooms</p>
+    </div>
+    <!-- Filter Section -->
+    <div class="filter-section">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">Filter Bookings</h5>
+                    <button id="resetFilters" class="dashboard-btn btn-sm text-white">
+                        <i class="fas fa-undo-alt me-1"></i> Reset Filters
+                    </button>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-3">
+                        <label class="form-label">Room Type</label>
+                        <select class="form-select" id="roomTypeFilter">
+                            <option value="">All Room Types</option>
+                            {% for room_type in room_types %}
+                            <option value="{{ room_type.name }}">{{ room_type.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" id="statusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="pending">Pending</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="cancelled">Cancelled</option>
+                            <option value="completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Check-in Date</label>
+                        <input type="date" class="form-control" id="dateFilter">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Bookings Section -->
+    <div class="bookings-section">
+        <h2>Your Bookings</h2>
+        {% if bookings %}
+            <div id="bookingsContainer">
+                {% for booking in bookings %}
+                <div class="booking-item" 
+                     data-room-type="{{ booking.room.room_type.name }}"
+                     data-status="{{ booking.status }}"
+                     data-check-in="{{ booking.check_in_date.strftime('%Y-%m-%d') }}"
+                     data-room-number="{{ booking.room.room_number }}"
+                     data-booking-id="{{ booking.id }}">
+                    <div class="booking-card">
+                        {% if booking.room.image %}
+                            <img src="{{ url_for('static', filename=booking.room.image) }}" 
+                                 alt="{{ booking.room.room_type.name }}" 
+                                 class="booking-image">
+                        {% else %}
+                            <div class="booking-image d-flex align-items-center justify-content-center bg-light">
+                                <i class="fas fa-bed fa-3x text-secondary"></i>
+                            </div>
+                        {% endif %}
+                        <h3 class="room-number">{{ booking.room.room_type.name }} - Room {{ booking.room.room_number }}</h3>
+                        <div class="booking-info">
+                            <p class="transaction-id"><strong>Transaction ID:</strong> {{ booking.id }}</p>
+                            <p><strong>Check-in:</strong> {{ booking.check_in_date.strftime('%B %d, %Y') }}</p>
+                            <p><strong>Check-out:</strong> {{ booking.check_out_date.strftime('%B %d, %Y') }}</p>
+                            <p><strong>Status:</strong> 
+                                <span class="status-badge status-{{ booking.status }}">
+                                    {{ booking.status|title }}
+                                </span>
+                            </p>
+                          <p><strong>Total Price:</strong> <span style="font-size:1.3rem; font-weight:bold; color:#6D4C41;"> ₱{{ "{:,.2f}".format(booking.total_price) }}</span></p>
+                        </div>
+                        {% if booking.comments %}
+                            <div class="booking-reviews">
+                                <p><strong>Your Review:</strong></p>
+                                <div class="review-stars">
+                                    {% for i in range(booking.comments[0].rating) %}★{% endfor %}
+                                </div>
+                                <p>{{ booking.comments[0].content }}</p>
+                                <p class="text-muted small">Posted on {{ format_datetime(booking.comments[0].created_at, '%B %d, %Y') }}</p>
+                                <button class="dashboard-btn btn-edit-review edit-review-btn" 
+                                        data-booking-id="{{ booking.id }}" 
+                                        data-rating="{{ booking.comments[0].rating }}" 
+                                        data-content="{{ booking.comments[0].content }}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                        {% endif %}
+                        <div class="booking-actions">
+                            <button type="button" class="dashboard-btn btn-view view-details-btn" 
+                                data-booking-id="{{ booking.id }}"
+                                data-room-type="{{ booking.room.room_type.name }}"
+                                data-room-number="{{ booking.room.room_number }}"
+                                data-check-in="{{ booking.check_in_date.strftime('%B %d, %Y') }}"
+                                data-check-out="{{ booking.check_out_date.strftime('%B %d, %Y') }}"
+                                data-status="{{ booking.status }}"
+                                data-total-price="{{ "%.2f"|format(booking.total_price) }}"
+                                data-transaction-id="{{ booking.id }}"
+                                data-room-image="{{ url_for('static', filename=booking.room.image) if booking.room.image else '' }}">
+                                <i class="fas fa-eye"></i> View Details
+                            </button>
+                            {% if booking.status in ['pending', 'approved'] and not booking.comments %}
+                                <button type="button" class="dashboard-btn btn-cancel cancel-booking-btn" data-booking-id="{{ booking.id }}">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            {% endif %}
+                            {% if booking.status in ['approved', 'completed'] %}
+                                <a href="{{ url_for('generate_receipt', booking_id=booking.id) }}?modal=1" class="dashboard-btn btn-receipt view-receipt-btn center-link" data-booking-id="{{ booking.id }}">
+                                    <i class="fas fa-receipt"></i>&nbsp;View Receipt
+                                </a>
+                            {% endif %}
+                            {% if booking.status == 'completed' and not booking.comments %}
+                                <button class="dashboard-btn btn-review review-btn" data-booking-id="{{ booking.id }}">
+                                    <i class="fas fa-star"></i> Review
+                                </button>
+                            {% endif %}
+                            {% if booking.status in ['cancelled', 'rejected', 'completed'] %}
+                                <button type="button" class="dashboard-btn btn-delete delete-booking-btn" data-booking-id="{{ booking.id }}">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+        <div style="background: #e7d7ce; color: #6D4C41; border-radius: 12px; width: 100%; margin: 24px auto 0 auto; font-size: 1.15rem; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 0;">
+                <p class="mb-3">You haven't made any bookings yet.</p>
+                <a href="{{ url_for('rooms') }}" class="dashboard-btn btn-primary" style="padding: 14px 40px; text-decoration: none; font-size: 1.15rem;">Browse Rooms</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Floating Action Button for Food Ordering -->
+<div class="floating-action-button" id="orderFoodBtn">
+    <i class="fas fa-utensils"></i>
+    <span>Order Food</span>
+</div>
+
+<!-- Booking Details Modal -->
+<div class="modal fade booking-details-modal" id="bookingDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 0;">
+            <div class="modal-header" style="background-color: #6D4C41; color: #fff; border-top-left-radius: 12px; border-top-right-radius: 12px;">
+                <h5 class="modal-title">Booking Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem; border-radius: 0 0 12px 12px;">
+                <div id="bookingDetailsContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Review Modal -->
+<div id="reviewModal" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Rate Your Stay</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="reviewFeedback" style="display: none;" class="alert"></div>
+                <form id="reviewForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="star-rating mb-3">
+                        <input type="radio" id="modal-star5" name="rating" value="5" required />
+                        <label for="modal-star5"></label>
+                        <input type="radio" id="modal-star4" name="rating" value="4" />
+                        <label for="modal-star4"></label>
+                        <input type="radio" id="modal-star3" name="rating" value="3" />
+                        <label for="modal-star3"></label>
+                        <input type="radio" id="modal-star2" name="rating" value="2" />
+                        <label for="modal-star2"></label>
+                        <input type="radio" id="modal-star1" name="rating" value="1" />
+                        <label for="modal-star1"></label>
+                    </div>
+                    <div class="mb-3">
+                        <textarea name="comment" class="form-control" rows="5" placeholder="Share your experience..." required maxlength="2000" id="reviewComment"></textarea>
+                        <small class="text-muted word-count">0/100 words</small>
+                    </div>
+                    <button type="submit"
+                        class="dashboard-btn btn-primary w-100 review-action-btn"
+                        style="background: #6D4C41; color: #fff; padding: 0.7rem 0; border-radius: 14px; font-weight: 600; font-size: 1rem; border: none; box-shadow: 0 2px 8px rgba(109,76,65,0.12); transition: background 0.2s, box-shadow 0.2s;">
+                        Submit Review
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Review Modal -->
+<div id="editReviewModal" class="modal fade">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Your Review</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="editReviewFeedback" style="display: none;" class="alert"></div>
+                <form id="editReviewForm" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="star-rating mb-3">
+                        <input type="radio" id="edit-modal-star5" name="rating" value="5" required />
+                        <label for="edit-modal-star5"></label>
+                        <input type="radio" id="edit-modal-star4" name="rating" value="4" />
+                        <label for="edit-modal-star4"></label>
+                        <input type="radio" id="edit-modal-star3" name="rating" value="3" />
+                        <label for="edit-modal-star3"></label>
+                        <input type="radio" id="edit-modal-star2" name="rating" value="2" />
+                        <label for="edit-modal-star2"></label>
+                        <input type="radio" id="edit-modal-star1" name="rating" value="1" />
+                        <label for="edit-modal-star1"></label>
+                    </div>
+                    <div class="mb-3">
+                        <textarea name="comment" class="form-control" rows="5" placeholder="Share your experience..." required maxlength="2000" id="editReviewComment"></textarea>
+                        <small class="text-muted edit-word-count">0/100 words</small>
+                    </div>
+                    <button type="submit" class="dashboard-btn btn-primary w-100 review-action-btn" style="padding: 0.75rem 2.5rem; border-radius: 8px; font-weight: 600; font-size: 1.1rem; border: none;">Update Review</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Booking Modal -->
+<div class="modal fade" id="cancelBookingModal" tabindex="-1" aria-labelledby="cancelBookingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #6D4C41; color: #fff;">
+                <h5 class="modal-title" id="cancelBookingModalLabel">Cancel Booking</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cancelBookingForm">
+                    <input type="hidden" id="cancel_booking_id" name="booking_id">
+                    <div class="mb-3">
+                        <label for="cancel_reason_select" class="form-label">Reason for Cancellation</label>
+                        <select class="form-select" id="cancel_reason_select" name="reason_select" required>
+                            <option value="" disabled selected>Select a reason</option>
+                            <option value="Change of plans">Change of plans</option>
+                            <option value="Found a better price">Found a better price</option>
+                            <option value="Booking mistake">Booking mistake</option>
+                            <option value="Personal emergency">Personal emergency</option>
+                            <option value="Travel restrictions">Travel restrictions</option>
+                            <option value="Other">Other (please specify)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="cancel_other_reason_group" style="display:none;">
+                        <label for="cancel_other_reason" class="form-label">Please specify</label>
+                        <textarea class="form-control" id="cancel_other_reason" name="other_reason" rows="3" maxlength="250" placeholder="Enter your reason here..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="dashboard-btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="dashboard-btn btn-danger" style="background: #c0392b; color: #fff; padding: 0.75rem 2.5rem; border-radius: 8px; border: none;" id="confirmCancel">Cancel Booking</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade confirmation-modal" id="deleteConfirmationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Booking</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-trash text-danger display-3 mb-3"></i>
+                <h4>Are you sure?</h4>
+                <p>Do you really want to delete this booking? This process cannot be undone.</p>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            </div>
+            <div class="modal-footer justify-content-center border-0">
+                <button type="button" class="dashboard-btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="dashboard-btn btn-danger btn-action">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancellation Reason Modal -->
+<div class="modal fade" id="cancellationReasonModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cancel Booking</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="cancellationForm" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label for="cancellationReason" class="form-label">Please provide a reason for cancellation:</label>
+                        <textarea class="form-control" id="cancellationReason" name="reason" rows="3" required></textarea>
+                    </div>
+                    <div class="modal-footer border-0 px-0 pb-0">
+                        <button type="button" class="dashboard-btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="dashboard-btn btn-danger">Cancel Booking</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1" aria-labelledby="receiptModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background-color: #6D4C41; color: white;">
+                <h5 class="modal-title" id="receiptModalLabel">
+                    <i class="fas fa-receipt me-2"></i>Booking Receipt
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="receiptFrame" src="" style="width: 100%; height: 600px; border: none;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="dashboard-btn btn-view-receipt" style="background-color: #6D4C41; color: white;" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="dashboard-btn btn-view-receipt" id="printReceiptBtn">
+                    <i class="fas fa-print"></i> Print
+                </button>
+                <button type="button" class="dashboard-btn btn-view-receipt" id="downloadReceiptBtn">
+                    <i class="fas fa-download"></i> Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Food Menu Modal is now in base.html and available on all pages -->
+<!-- The dashboard now uses the same consistent food menu modal as other pages -->
+
+<!-- Food Menu Modal is now in base.html and available on all pages -->
+
+<!-- Food menu modal animations are now handled consistently by main.js -->
+<!-- This ensures smooth animations across all pages including the dashboard -->
+
+<!-- Order Summary Modal -->
+<div class="modal fade" id="orderSummaryModal" tabindex="-1" aria-labelledby="orderSummaryModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="orderSummaryModalLabel">Order Summary</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="orderSummaryContent">
+        <!-- JS will fill this -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" id="confirmOrderBtn">Confirm Order</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for category, message in messages %}
+    {% if category == 'booking_status' and message == 'booking_success' %}
+      <script>
+        document.addEventListener('DOMContentLoaded', function() {
+          const modalHtml = `
+            <div class="modal fade" id="bookingSuccessModal" tabindex="-1" aria-labelledby="bookingSuccessLabel" aria-hidden="true">
+              <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="bookingSuccessLabel">Booking Successful!</h5>
+                  </div>
+                  <div class="modal-body">
+                    <p>Your booking was successful. Thank you for choosing FAWNA Hotel!</p>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="dashboard-btn btn-success" data-bs-dismiss="modal">OK</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+          document.body.insertAdjacentHTML('beforeend', modalHtml);
+          var bookingModal = new bootstrap.Modal(document.getElementById('bookingSuccessModal'));
+          bookingModal.show();
+        });
+      </script>
+    {% endif %}
+  {% endfor %}
+{% endwith %}
+
+<script>
+function viewBookingDetails(bookingId, roomType, roomNumber, checkIn, checkOut, status, totalPrice, transactionId, roomImage) {
+    const statusClass = {
+        'pending': 'status-pending',
+        'approved': 'status-approved',
+        'cancelled': 'status-cancelled',
+        'rejected': 'status-rejected',
+        'completed': 'status-completed'
+    }[status.toLowerCase()];
+    
+    // Function to capitalize first letter
+    function capitalizeFirstLetter(string) {
+        return string.charAt(0).toUpperCase() + string.slice(1);
+    }
+    
+    // Get the capitalized status
+    const capitalizedStatus = capitalizeFirstLetter(status.toLowerCase());
+
+    // Get cancellation/rejection reason if applicable
+    if (['cancelled','rejected'].includes(status.toLowerCase())) {
+        fetch(`/bookings/${bookingId}/details`)
+            .then(response => response.json())
+            .then(data => {
+                const content = `
+                    <div class="booking-card" style="box-shadow:none; border: none; padding: 0;">
+                        <h3 class="room-number" style="color:#6D4C41;">${roomType} - Room ${roomNumber}</h3>
+                        <div class="mb-3 text-center">
+                            ${roomImage ? `<img src="${roomImage}" alt="Room Image" class="booking-image" style="max-height:180px;object-fit:cover;border-radius:8px;">` : `<div class='bg-light d-flex align-items-center justify-content-center' style='height:180px;'><i class='fas fa-bed fa-3x text-secondary'></i></div>`}
+                            </div>
+                        <div class="booking-info" style="margin-bottom:1.5rem;">
+                            <p class="transaction-id"><strong>Transaction ID:</strong> ${transactionId}</p>
+                            <p><strong>Check-in:</strong> ${checkIn}</p>
+                            <p><strong>Check-out:</strong> ${checkOut}</p>
+                            <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${capitalizedStatus}</span></p>
+                            <p><strong>Total Price:</strong> <span style="font-size:1.3rem; font-weight:bold; color:#6D4C41;">₱${totalPrice}</span></p>
+                        </div>
+                        <div class="info-list mt-4">
+                            ${status.toLowerCase() === 'cancelled' ? `
+                                <div class="info-item">
+                                    <span class="label">Cancellation Reason:</span>
+                                    <span class="value">${data.cancellation_reason || 'No reason provided'}</span>
+                                </div>
+                                ${data.cancelled_at ? `
+                                <div class="info-item">
+                                    <span class="label">Cancelled on:</span>
+                                    <span class="value">${data.cancelled_at}</span>
+                                </div>
+                                ` : ''}
+                            ` : ''}
+                            ${status.toLowerCase() === 'rejected' ? `
+                                <div class="info-item">
+                                    <span class="label">Rejection Reason:</span>
+                                    <span class="value"><strong>${data.rejection_reason || data.cancellation_reason || 'No reason provided'}</strong></span>
+                                </div>
+                                ${data.rejected_at ? `
+                                <div class="info-item">
+                                    <span class="label">Rejected on:</span>
+                                    <span class="value">${data.rejected_at}</span>
+                                </div>
+                                ` : ''}
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                document.getElementById('bookingDetailsContent').innerHTML = content;
+            })
+            .catch(error => {
+                console.error('Error fetching booking details:', error);
+                // Show basic details if fetch fails
+                showBasicDetails();
+            });
+    } else {
+        showBasicDetails();
+    }
+
+    function showBasicDetails() {
+        const content = `
+            <div class="booking-card" style="box-shadow:none; border: none; padding: 0;">
+                <h3 class="room-number" style="color:#6D4C41;">${roomType} - Room ${roomNumber}</h3>
+                <div class="mb-3 text-center">
+                    ${roomImage ? `<img src="${roomImage}" alt="Room Image" class="booking-image" style="max-height:180px;object-fit:cover;border-radius:8px;">` : `<div class='bg-light d-flex align-items-center justify-content-center' style='height:180px;'><i class='fas fa-bed fa-3x text-secondary'></i></div>`}
+                </div>
+                <div class="booking-info" style="margin-bottom:1.5rem;">
+                    <p class="transaction-id"><strong>Transaction ID:</strong> ${transactionId}</p>
+                    <p><strong>Check-in:</strong> ${checkIn}</p>
+                    <p><strong>Check-out:</strong> ${checkOut}</p>
+                    <p><strong>Status:</strong> <span class="status-badge ${statusClass}">${capitalizedStatus}</span></p>
+                    <p><strong>Total Price:</strong> <span style="font-size:1.3rem; font-weight:bold; color:#6D4C41;">₱${totalPrice}</span></p>
+                </div>
+            </div>
+        `;
+        document.getElementById('bookingDetailsContent').innerHTML = content;
+    }
+
+    new bootstrap.Modal(document.getElementById('bookingDetailsModal')).show();
+}
+
+function openReviewModal(bookingId) {
+    const modal = new bootstrap.Modal(document.getElementById('reviewModal'));
+    document.getElementById('reviewFeedback').style.display = 'none';
+    const form = document.getElementById('reviewForm');
+    const actionUrl = window.location.origin + '/booking/' + bookingId + '/comment';
+    form.action = actionUrl;
+    modal.show();
+}
+
+function openEditReviewModal(bookingId, rating, content) {
+    const modal = new bootstrap.Modal(document.getElementById('editReviewModal'));
+    document.getElementById('editReviewFeedback').style.display = 'none';
+    const form = document.getElementById('editReviewForm');
+    const actionUrl = window.location.origin + '/booking/' + bookingId + '/comment/edit';
+    form.action = actionUrl;
+    
+    // Set existing rating
+    document.getElementById(`edit-modal-star${rating}`).checked = true;
+    
+    // Set existing content
+    document.getElementById('editReviewComment').value = content;
+    
+    // Update word count
+    const words = content.trim().split(/\s+/);
+    const count = content.trim() === '' ? 0 : words.length;
+    document.querySelector('.edit-word-count').textContent = count + '/100 words';
+    
+    modal.show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // View details buttons
+    document.querySelectorAll('.view-details-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const roomImage = button.getAttribute('data-room-image');
+            viewBookingDetails(
+                this.getAttribute('data-booking-id'),
+                this.getAttribute('data-room-type'),
+                this.getAttribute('data-room-number'),
+                this.getAttribute('data-check-in'),
+                this.getAttribute('data-check-out'),
+                this.getAttribute('data-status'),
+                this.getAttribute('data-total-price'),
+                this.getAttribute('data-transaction-id'),
+                roomImage
+            );
+        });
+    });
+    
+    // Review buttons
+    document.querySelectorAll('.review-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            openReviewModal(this.getAttribute('data-booking-id'));
+        });
+    });
+    
+    // Edit Review buttons
+    document.querySelectorAll('.edit-review-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            openEditReviewModal(
+                this.getAttribute('data-booking-id'),
+                this.getAttribute('data-rating'),
+                this.getAttribute('data-content')
+            );
+        });
+    });
+    
+    // Word count for review comment
+    const reviewComment = document.getElementById('reviewComment');
+    const wordCount = document.querySelector('.word-count');
+    
+    if (reviewComment) {
+        reviewComment.addEventListener('input', function() {
+            // Split by whitespace to get words
+            const words = this.value.trim().split(/\s+/);
+            const count = this.value.trim() === '' ? 0 : words.length;
+            
+            // Limit each word to 30 characters but preserve spaces
+            let limitedText = this.value;
+            
+            // Limit to 100 words
+            if (count > 100) {
+                // Keep only the first 100 words
+                const limitedWords = words.slice(0, 100);
+                limitedText = limitedWords.join(' ');
+                this.value = limitedText;
+                wordCount.textContent = '100/100 words';
+                wordCount.classList.add('text-danger');
+            } else {
+                wordCount.textContent = count + '/100 words';
+                wordCount.classList.remove('text-danger');
+            }
+        });
+    }
+    
+    // Word count for edit review comment
+    const editReviewComment = document.getElementById('editReviewComment');
+    const editWordCount = document.querySelector('.edit-word-count');
+    
+    if (editReviewComment) {
+        editReviewComment.addEventListener('input', function() {
+            // Split by whitespace to get words
+            const words = this.value.trim().split(/\s+/);
+            const count = this.value.trim() === '' ? 0 : words.length;
+            
+            // Limit each word to 30 characters but preserve spaces
+            let limitedText = this.value;
+            
+            // Limit to 100 words
+            if (count > 100) {
+                // Keep only the first 100 words
+                const limitedWords = words.slice(0, 100);
+                limitedText = limitedWords.join(' ');
+                this.value = limitedText;
+                editWordCount.textContent = '100/100 words';
+                editWordCount.classList.add('text-danger');
+            } else {
+                editWordCount.textContent = count + '/100 words';
+                editWordCount.classList.remove('text-danger');
+            }
+        });
+    }
+    
+    // Initialize cancel booking modal
+    const cancelBookingModal = new bootstrap.Modal(document.getElementById('cancelBookingModal'));
+    
+    // Handle cancel booking button clicks
+    document.querySelectorAll('.cancel-booking-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const bookingId = this.dataset.bookingId;
+            document.getElementById('cancel_booking_id').value = bookingId;
+            cancelBookingModal.show();
+        });
+    });
+    
+    // Handle cancel confirmation
+    document.getElementById('confirmCancel').addEventListener('click', function() {
+        const form = document.getElementById('cancelBookingForm');
+        const bookingId = document.getElementById('cancel_booking_id').value;
+        const reasonSelect = document.getElementById('cancel_reason_select').value;
+        const otherReasonTextarea = document.getElementById('cancel_other_reason').value;
+        const modal = bootstrap.Modal.getInstance(document.getElementById('cancelBookingModal'));
+        
+        let reason = '';
+        if (reasonSelect === 'Other') {
+            if (!otherReasonTextarea) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Required',
+                text: 'Please provide a reason for cancellation.',
+                    confirmButtonColor: '#6D4C41'
+                });
+                return;
+            }
+            reason = otherReasonTextarea;
+        } else {
+            reason = reasonSelect;
+        }
+        
+        if (!reason) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Required',
+                text: 'Please select a reason for cancellation.',
+                confirmButtonColor: '#6D4C41'
+            });
+            return;
+        }
+        
+        // Show loading state
+        const confirmButton = document.getElementById('confirmCancel');
+        const originalText = confirmButton.innerHTML;
+        confirmButton.disabled = true;
+        confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        fetch(`/bookings/${bookingId}/cancel`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]').value
+            },
+            body: JSON.stringify({
+                reason: reason
+            }),
+            credentials: 'same-origin'
+        })
+        .then(async response => {
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Failed to cancel booking');
+            }
+            return data;
+        })
+        .then(data => {
+            // Close the modal first
+            modal.hide();
+            
+            // Show success message
+            Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: data.message || 'Booking cancelled successfully',
+                showConfirmButton: false,
+                timer: 2000
+            }).then(() => {
+                // Reload the page after the message
+                window.location.reload();
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            
+            // Show error message
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'An error occurred while cancelling the booking. Please try again.',
+                confirmButtonColor: '#6D4C41'
+            });
+        })
+        .finally(() => {
+            // Reset button state
+            confirmButton.disabled = false;
+            confirmButton.innerHTML = originalText;
+        });
+    });
+    
+    // Delete booking buttons
+    document.querySelectorAll('.delete-booking-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const bookingId = this.getAttribute('data-booking-id');
+            const modal = new bootstrap.Modal(document.getElementById('deleteConfirmationModal'));
+            
+            // Update the delete confirmation button handler
+            document.querySelector('#deleteConfirmationModal .btn-action').onclick = function() {
+                const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+                
+                fetch(`/bookings/${bookingId}/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Close the modal first
+                    modal.hide();
+                    
+                    if (data.success) {
+                        // Show success message
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: data.message || 'Booking deleted successfully',
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(() => {
+                            // Reload the page after the message
+                            window.location.reload();
+                        });
+                    } else {
+                        // Show error message
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: data.message || 'Failed to delete booking',
+                            confirmButtonColor: '#6D4C41'
+                        });
+                    }
+                })
+                .catch(async error => {
+                    // Close the modal first
+                    modal.hide();
+                    
+                    // Try to extract error message from response if possible
+                    let errorMsg = 'An error occurred while deleting the booking. Please try again.';
+                    if (error && error.response) {
+                        try {
+                            const errData = await error.response.json();
+                            errorMsg = errData.message || errorMsg;
+                        } catch {}
+                    } else if (error && error.message) {
+                        errorMsg = error.message;
+                    }
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: errorMsg,
+                        confirmButtonColor: '#6D4C41'
+                    });
+                });
+            };
+            
+            modal.show();
+        });
+    });
+    
+    // Filter functionality
+    const roomTypeFilter = document.getElementById('roomTypeFilter');
+    const statusFilter = document.getElementById('statusFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    const resetFiltersBtn = document.getElementById('resetFilters');
+    
+    // Load saved filters from localStorage if they exist
+    if (localStorage.getItem('dashboard_roomType')) {
+        roomTypeFilter.value = localStorage.getItem('dashboard_roomType');
+    }
+    
+    if (localStorage.getItem('dashboard_status')) {
+        statusFilter.value = localStorage.getItem('dashboard_status');
+    }
+    
+    if (localStorage.getItem('dashboard_date')) {
+        dateFilter.value = localStorage.getItem('dashboard_date');
+    }
+    
+    function applyFilters() {
+        const roomType = roomTypeFilter.value;
+        const status = statusFilter.value;
+        const date = dateFilter.value;
+        
+        // Save current filters to localStorage
+        localStorage.setItem('dashboard_roomType', roomType);
+        localStorage.setItem('dashboard_status', status);
+        localStorage.setItem('dashboard_date', date);
+        
+        document.querySelectorAll('.booking-item').forEach(item => {
+            // Check if the item has the required data attributes
+            const itemRoomType = item.getAttribute('data-room-type');
+            const itemStatus = item.getAttribute('data-status');
+            const itemCheckIn = item.getAttribute('data-check-in');
+            
+            const matchesRoomType = !roomType || itemRoomType === roomType;
+            const matchesStatus = !status || itemStatus === status;
+            const matchesDate = !date || itemCheckIn === date;
+            
+            if (matchesRoomType && matchesStatus && matchesDate) {
+                item.style.display = '';
+                item.classList.remove('hidden');
+            } else {
+                item.style.display = 'none';
+                item.classList.add('hidden');
+            }
+        });
+        
+        // Show "no results" message if all items are hidden
+        const allHidden = Array.from(document.querySelectorAll('.booking-item')).every(item => item.classList.contains('hidden'));
+        const noResultsMsg = document.querySelector('.no-bookings');
+        
+        if (allHidden && document.querySelectorAll('.booking-item').length > 0) {
+            if (!noResultsMsg) {
+                const msg = document.createElement('div');
+                msg.className = 'no-bookings';
+                msg.innerHTML = 'No bookings match your filter criteria.';
+                document.getElementById('bookingsContainer').appendChild(msg);
+            }
+        } else if (noResultsMsg) {
+            noResultsMsg.remove();
+        }
+    }
+    
+    // Add event listener for reset button
+    resetFiltersBtn.addEventListener('click', function() {
+        // Clear localStorage items
+        localStorage.removeItem('dashboard_roomType');
+        localStorage.removeItem('dashboard_status');
+        localStorage.removeItem('dashboard_date');
+        
+        // Reset form values
+        roomTypeFilter.value = '';
+        statusFilter.value = '';
+        dateFilter.value = '';
+        
+        // Apply filters (which will now show all)
+        applyFilters();
+    });
+    
+    roomTypeFilter.addEventListener('change', applyFilters);
+    statusFilter.addEventListener('change', applyFilters);
+    dateFilter.addEventListener('change', applyFilters);
+    
+    // Apply saved filters on page load
+    if (localStorage.getItem('dashboard_roomType') || 
+        localStorage.getItem('dashboard_status') || 
+        localStorage.getItem('dashboard_date')) {
+        applyFilters();
+    }
+
+    // Handle review form submission with validation
+    const reviewForm = document.getElementById('reviewForm');
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Check if a rating is selected
+            const ratingSelected = document.querySelector('input[name="rating"]:checked');
+            
+            if (!ratingSelected) {
+                const feedbackDiv = document.getElementById('reviewFeedback');
+                feedbackDiv.textContent = 'Please select a rating before submitting';
+                feedbackDiv.className = 'alert alert-danger';
+                feedbackDiv.style.display = 'block';
+                return;
+            }
+            
+            // Get the form data
+            const formData = new FormData(this);
+            
+            // Submit form with fetch
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': formData.get('csrf_token')
+                },
+                body: formData,
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('reviewModal'));
+                    modal.hide();
+                    // Show success message
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Review submitted successfully'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error('Failed to submit review');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to submit review. Please try again.',
+                    confirmButtonColor: '#6D4C41'
+                });
+            });
+        });
+    }
+    
+    // Handle edit review form submission with validation
+    const editReviewForm = document.getElementById('editReviewForm');
+    if (editReviewForm) {
+        editReviewForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Check if a rating is selected
+            const ratingSelected = document.querySelector('#editReviewForm input[name="rating"]:checked');
+            
+            if (!ratingSelected) {
+                const feedbackDiv = document.getElementById('editReviewFeedback');
+                feedbackDiv.textContent = 'Please select a rating before submitting';
+                feedbackDiv.className = 'alert alert-danger';
+                feedbackDiv.style.display = 'block';
+                return;
+            }
+            
+            // Get the form data
+            const formData = new FormData(this);
+            
+            // Submit form with fetch for edit review
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': formData.get('csrf_token')
+                },
+                body: formData,
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editReviewModal'));
+                    modal.hide();
+                    // Show success message
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    Toast.fire({
+                        icon: 'success',
+                        title: 'Review updated successfully'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error('Failed to update review');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to update review. Please try again.',
+                    confirmButtonColor: '#6D4C41'
+                });
+            });
+        });
+    }
+    
+    // Handle Receipt Modal functionality
+    document.querySelectorAll('.view-receipt-btn').forEach(function(button) {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const receiptUrl = this.getAttribute('href');
+            
+            // Set iframe source to the receipt URL
+            document.getElementById('receiptFrame').src = receiptUrl;
+            
+            // Show the modal
+            const receiptModal = new bootstrap.Modal(document.getElementById('receiptModal'));
+            receiptModal.show();
+        });
+    });
+    
+    // Handle print button click
+    document.getElementById('printReceiptBtn').addEventListener('click', function() {
+        const iframe = document.getElementById('receiptFrame');
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+    });
+    
+    // Handle download button click
+    document.getElementById('downloadReceiptBtn').addEventListener('click', function() {
+        // Show loading state
+        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+        this.disabled = true;
+        
+        // Get the booking ID from the iframe src
+        const iframe = document.getElementById('receiptFrame');
+        const src = iframe.src;
+        const bookingId = src.match(/\/bookings\/(\d+)\/receipt/)[1];
+        
+        // Create a new approach that doesn't affect the current page
+        try {
+            // Open a new window with just the receipt content
+            const receiptUrl = src + "&pdf=1&autodownload=1";
+            const pdfWindow = window.open(receiptUrl, '_blank', 'width=800,height=600');
+            
+            // Reset button after a reasonable timeout
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-download"></i> Download PDF';
+                this.disabled = false;
+            }, 3000);
+            
+        } catch (e) {
+            console.error('Error opening PDF window:', e);
+            alert('There was an error generating your PDF. Please try again or use the print option.');
+            this.innerHTML = '<i class="fas fa-download"></i> Download PDF';
+            this.disabled = false;
+            
+            // Fall back to the original method
+            if (typeof html2pdf === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+                script.onload = function() {
+                    generatePDFLegacy(bookingId);
+                };
+                document.head.appendChild(script);
+            } else {
+                generatePDFLegacy(bookingId);
+            }
+        }
+    });
+    
+    // Function to generate PDF in a separate window
+    function generatePDFInWindow(pdfWindow, bookingId) {
+        try {
+            // Configure options for PDF generation - match admin settings
+            const options = {
+                margin: 10,
+                filename: `Receipt-${bookingId}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 2, // Match admin's scale of 2
+                    useCORS: true,
+                    letterRendering: true
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait'
+                }
+            };
+            
+            // Find the receipt content in the new window
+            const receiptContent = pdfWindow.document.querySelector('.receipt-main');
+            if (!receiptContent) {
+                throw new Error('Receipt content not found in new window');
+            }
+            
+            // Generate PDF in the new window
+            pdfWindow.html2pdf().from(receiptContent).set(options).save().then(() => {
+                // Close the window after a delay to allow download to start
+                setTimeout(() => {
+                    pdfWindow.close();
+                }, 1000);
+            });
+        } catch (e) {
+            console.error('Error generating PDF in new window:', e);
+            pdfWindow.close();
+            alert('There was an error generating your PDF. Please try again or use the print option.');
+        }
+    }
+    
+    // Legacy PDF generation method as fallback
+    function generatePDFLegacy(bookingId) {
+        const downloadBtn = document.getElementById('downloadReceiptBtn');
+        const iframe = document.getElementById('receiptFrame');
+        
+        // Create a hidden iframe for PDF generation to prevent affecting the main page
+        const hiddenIframe = document.createElement('iframe');
+        hiddenIframe.style.position = 'absolute';
+        hiddenIframe.style.top = '-9999px';
+        hiddenIframe.style.left = '-9999px';
+        hiddenIframe.style.width = '1200px';
+        hiddenIframe.style.height = '1800px';
+        hiddenIframe.src = iframe.src;
+        document.body.appendChild(hiddenIframe);
+        
+        // Wait for the hidden iframe to load
+        hiddenIframe.onload = function() {
+            // Show loading state
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating PDF...';
+            downloadBtn.disabled = true;
+            
+            // Configure html2pdf options
+            const options = {
+                margin: [15, 15, 15, 15], // Increase margins [top, right, bottom, left]
+                filename: `Receipt-${bookingId}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { 
+                    scale: 3, // Increased for larger content
+                    useCORS: true,
+                    letterRendering: true,
+                    logging: false,
+                    windowWidth: 1200,
+                    windowHeight: 1800,
+                    scrollX: 0,
+                    scrollY: 0,
+                    onclone: (doc) => {
+                        Array.from(doc.querySelectorAll('*')).forEach(el => {
+                            const style = window.getComputedStyle(el);
+                            if (style && style.fontFamily) {
+                                el.style.fontFamily = style.fontFamily;
+                            }
+                        });
+                    }
+                },
+                jsPDF: { 
+                    unit: 'mm', 
+                    format: 'a4', 
+                    orientation: 'portrait',
+                    compress: true,
+                    precision: 4
+                }
+            };
+            
+            // Use the content from the hidden iframe for PDF generation
+            const receiptContent = hiddenIframe.contentDocument.documentElement;
+            
+            // Generate the PDF with better error handling
+            html2pdf().from(receiptContent).set(options).save()
+                .then(() => {
+                    // Reset button state after PDF is generated
+                    setTimeout(() => {
+                        downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download PDF';
+                        downloadBtn.disabled = false;
+                        
+                        // Remove the hidden iframe
+                        document.body.removeChild(hiddenIframe);
+                    }, 1000);
+                })
+                .catch(err => {
+                    console.error('PDF generation error:', err);
+                    alert('There was an error generating your PDF. Please try again or use the print option.');
+                    downloadBtn.innerHTML = '<i class="fas fa-download"></i> Download PDF';
+                    downloadBtn.disabled = false;
+                    
+                    // Remove the hidden iframe
+                    document.body.removeChild(hiddenIframe);
+                });
+        };
+    }
+
+    // Food ordering is now handled by the consistent foodMenuModal from base.html
+    // This ensures consistent design and functionality across all pages
+
+    // Food menu modal is now handled consistently by main.js
+    // The dashboard uses the same foodMenuModal as other pages
+});
+</script>
+<script>
+  window.FOOD_SERVICE_IP = "{{ food_service_ip if food_service_ip else '192.168.1.12' }}";
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+
+
+
+{% endblock %} 

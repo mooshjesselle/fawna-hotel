@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Promo Details{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg">
+                {% if promo.image %}
+                <img src="{{ url_for('static', filename=promo.image) }}" class="card-img-top" alt="{{ promo.title }}" style="max-height: 300px; object-fit: cover;">
+                {% endif %}
+                <div class="card-body">
+                    <h2 class="card-title" style="color: #6D4C41; font-weight: bold;">{{ promo.title }}</h2>
+                    <p class="card-text" style="font-size: 1.1rem;">{{ promo.description }}</p>
+                    {% if promo.discount_percentage and promo.discount_percentage > 0 %}
+                    <div class="mb-2" style="color: #d9534f; font-weight: bold; font-size: 1.2rem;">
+                        <i class="fas fa-percentage"></i> {{ promo.discount_percentage|round(2) }}% OFF
+                    </div>
+                    {% endif %}
+                    <div class="mb-2" style="color: #888; font-size: 1rem;">Validity: {{ promo.start_date.strftime('%b %d, %Y') }} – {{ promo.end_date.strftime('%b %d, %Y') }}</div>
+                    <hr>
+                    <h4 class="mt-4 mb-3" style="color: #6D4C41;">Eligible Rooms</h4>
+                    {% if rooms and rooms|length > 0 %}
+                    <div class="row">
+                        {% for room in rooms %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Room {{ room.room_number }}</h5>
+                                    <p class="card-text">Type: {{ room.room_type.name }}</p>
+                                    <p class="card-text">Price per night: <span style="color: #d9534f; font-weight: bold; font-size: 1.3rem;">₱{{ "{:,.2f}".format(room.room_type.price_per_night * (1 - promo.discount_percentage / 100)) }}</span> <span class="text-muted text-decoration-line-through" style="font-size: 1.1rem;">₱{{ "{:,.2f}".format(room.room_type.price_per_night) }}</span></p>
+                                    <a href="{{ url_for('room_detail', room_id=room.id, promo_id=promo.id) }}" class="btn w-100" style="background: #6D4C41; color: #fff; font-weight: 600; border-radius: 6px; border: none; padding: 10px 0; font-size: 1.08rem; margin-top: 10px; text-decoration: none;">Book Now</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info">No rooms are currently eligible for this promo.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

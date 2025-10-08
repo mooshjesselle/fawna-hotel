@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<script>
+  window.location.replace("{{ url_for('login') }}");
+<\/script>
+<noscript>
+  <meta http-equiv="refresh" content="0; url={{ url_for('login') }}">
+  <p>Redirecting to login...</p>
+</noscript>
+{% endblock %}

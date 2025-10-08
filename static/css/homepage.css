@@ -1,0 +1,338 @@
+.hero {
+    position: relative;
+    height: 100vh;
+    margin-top: -80px;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1)),
+    url('../images/HomepageImage.png');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: white;
+    z-index: 1;
+    
+}
+
+/* Ensure homepage carousel has a stable height and no layout shifting */
+#heroCarousel,
+#heroCarousel .carousel-inner,
+#heroCarousel .carousel-item {
+    height: 100vh;
+}
+
+.hero-carousel-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Dark overlay over slideshow images for better contrast with background */
+#heroCarousel .carousel-item { position: relative; }
+#heroCarousel .carousel-item::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 1;
+    pointer-events: none;
+}
+#heroCarousel .carousel-item img { position: relative; z-index: 0; }
+
+/* Make carousel arrows clickable above overlay */
+#heroCarousel .carousel-control-prev,
+#heroCarousel .carousel-control-next {
+    z-index: 5;
+}
+
+/* Let overlay text sit above image but not block arrow clicks */
+.hero-overlay { pointer-events: none; }
+.hero-overlay .booking,
+.hero-overlay button,
+.hero-overlay a { pointer-events: auto; }
+
+.hero h1 {
+    font-size: 3.5em;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    animation: fadeIn 1.0s ease-in-out;
+}
+
+.hero p {
+    font-size: 1.2em;
+    margin-top: 0;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    animation: fadeIn 1.0s ease-in-out;
+}
+
+
+.booking {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 30px;
+}
+
+.booking button {
+    background-color: #8b5e3b;
+    color: white;
+    padding: 10px 15px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top:50px;
+    width: 200px;
+
+}
+
+.booking button:hover {
+    background-color: #6b4c2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Services Section */
+.services {
+    display: flex;
+    justify-content: center;
+    align-items: stretch;
+    padding: 80px 40px;
+    text-align: center;
+    background: #f5e6d3;
+    gap: 32px;
+    flex-wrap: nowrap;
+}
+
+.service {
+    background: white;
+    padding: 25px;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 320px;
+    box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 500px;
+    margin-bottom: 0;
+}
+
+.service:hover {
+    transform: translateY(-8px);
+    box-shadow: 0px 12px 20px rgba(0, 0, 0, 0.15);
+}
+
+.service-image {
+    width: 100%;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.service-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+    display: block;
+}
+
+.service:hover .service-image img {
+    transform: scale(1.1);
+}
+
+.service-content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 0 0 0 0;
+    text-align: center;
+    width: 100%;
+}
+
+.service-content h2 {
+    color: #8b5e3b;
+    font-size: 24px;
+    margin-bottom: 12px;
+    font-weight: bold;
+}
+
+.service-content p {
+    color: #5a3e2b;
+    margin-bottom: 18px;
+    line-height: 1.6;
+    font-size: 16px;
+}
+
+.service-button {
+    text-decoration: none;
+    color: #8b5e3b;
+    font-weight: bold;
+    display: inline-block;
+    padding: 12px 24px;
+    border: 2px solid #8b5e3b;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-size: 16px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: auto;
+}
+
+.service-button:hover {
+    background: #8b5e3b;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(139, 94, 59, 0.3);
+}
+
+@media (max-width: 1400px) {
+    .services {
+        gap: 20px;
+    }
+    .service {
+        max-width: 260px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .services {
+        flex-wrap: wrap;
+        gap: 24px;
+    }
+    .service {
+        flex: 1 1 45%;
+        max-width: 45%;
+        min-width: 260px;
+        margin-bottom: 30px;
+    }
+}
+
+@media (max-width: 900px) {
+    .services {
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+    }
+    .service {
+        width: 100%;
+        max-width: 500px;
+        margin-bottom: 30px;
+        height: auto;
+    }
+}
+
+@media (max-width: 768px) {
+    .services {
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 20px;
+        gap: 30px;
+    }
+    .service {
+        width: 100%;
+        max-width: 500px;
+        margin-bottom: 30px;
+        padding: 20px;
+        height: auto;
+    }
+    .service-image {
+        height: 180px;
+    }
+    .service-content {
+        padding: 10px 0 0 0;
+    }
+    .service-content h2 {
+        font-size: 22px;
+    }
+    .service-button {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}
+
+/* Description sections uniform flex alignment */
+.description, .description2 {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    gap: 30px;
+    background: #f5e6d3;
+    flex-wrap: wrap;
+}
+
+.description img, .description2 img {
+    width: 40%;
+    min-width: 220px;
+    max-width: 450px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.description p, .description2 p {
+    width: 50%;
+    min-width: 220px;
+    font-size: 1.1em;
+    color: #5a3e2b;
+    line-height: 1.7;
+    margin: 0;
+    text-align: left;
+}
+
+@media (max-width: 900px) {
+    .description, .description2 {
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+    }
+    .description img, .description2 img, .description p, .description2 p {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        text-align: center;
+    }
+}
+
+.login-button {
+    background-color: #8b5e3b;
+    color: white;
+    padding: 10px 15px;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 50px;
+    width: 200px;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.login-button:hover {
+    background-color: #6b4c2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.login-button:focus {
+    outline: none;
+    box-shadow: none;
+} 

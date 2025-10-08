@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}Booking{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/create.css') }}">
+{% endblock %}
+
+{% block content %}
+
+<style>
+    .row {
+        width:100%;
+    }
+
+</style>
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <br><h4 class="mb-0">Book Room {{ room.room_number }}</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" class="needs-validation" novalidate>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="check_in" class="form-label">Check-in Date</label>
+                            <input type="date" class="form-control" id="check_in" name="check_in" required>
+                            <div class="invalid-feedback">
+                                Please select a check-in date.
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="check_out" class="form-label">Check-out Date</label>
+                            <input type="date" class="form-control" id="check_out" name="check_out" required>
+                            <div class="invalid-feedback">
+                                Please select a check-out date.
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="price_per_night" value="{{ room.room_type.price_per_night }}">
+                    
+                    <div class="alert alert-info">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Total Price:</span>
+                            <span>₱<span id="total_price">0.00</span></span>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Approve Booking</button>
+                    <a href="{{ url_for('rooms') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <br><h5 class="mb-0">Room Details</h5>
+            </div>
+            <img src="{{ url_for('static', filename=room.image) if room.image else url_for('static', filename='images/room-placeholder.jpg') }}" 
+                 class="card-img-top" alt="{{ room.room_type.name }}">
+            <div class="card-body">
+                <h5 class="card-title">{{ room.room_type.name }}</h5>
+                <p class="card-text">{{ room.room_type.description }}</p>
+                <h6 class="mb-3">₱{{ room.room_type.price_per_night }}/night</h6>
+
+                {% if room.amenities %}
+                <h6>Amenities:</h6>
+                <ul class="list-unstyled">
+                    {% for amenity in room.amenities %}
+                    <li>
+                        <i class="fas {{ amenity.icon }} amenity-icon"></i>
+                        {{ amenity.name }}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkInInput = document.getElementById('check_in');
+    const checkOutInput = document.getElementById('check_out');
+    
+    // Set date restrictions
+    const today = new Date().toISOString().split('T')[0];
+    const oneYearFromNow = new Date();
+    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+    const maxDate = oneYearFromNow.toISOString().split('T')[0];
+    
+    // Set min and max dates
+    checkInInput.min = today;
+    checkInInput.max = maxDate;
+    checkOutInput.min = today;
+    checkOutInput.max = maxDate;
+    
+    checkInInput.addEventListener('change', function() {
+        // Ensure check-out date is after check-in date
+        checkOutInput.min = this.value;
+        
+        // If check-out date is before check-in date, update it
+        if (checkOutInput.value && new Date(checkOutInput.value) <= new Date(this.value)) {
+            // Set check-out to the day after check-in
+            const nextDay = new Date(this.value);
+            nextDay.setDate(nextDay.getDate() + 1);
+            if (nextDay <= oneYearFromNow) {
+                checkOutInput.value = nextDay.toISOString().split('T')[0];
+            }
+        }
+        
+        calculatePrice();
+    });
+    
+    checkOutInput.addEventListener('change', function() {
+        // Calculate max date as 1 year from check-in or today
+        const selectedCheckIn = new Date(checkInInput.value || today);
+        const maxCheckOut = new Date(selectedCheckIn);
+        maxCheckOut.setFullYear(maxCheckOut.getFullYear() + 1);
+        
+        // If check-out is beyond 1 year from check-in, reset it
+        if (new Date(this.value) > maxCheckOut) {
+            this.value = maxCheckOut.toISOString().split('T')[0];
+        }
+        
+        calculatePrice();
+    });
+    
+    // Initialize price calculation on page load
+    calculatePrice();
+});
+
+function calculatePrice() {
+    const checkIn = document.getElementById('check_in').value;
+    const checkOut = document.getElementById('check_out').value;
+    const pricePerNight = parseFloat(document.getElementById('price_per_night').value);
+    
+    if (checkIn && checkOut && pricePerNight) {
+        const checkInDate = new Date(checkIn);
+        const checkOutDate = new Date(checkOut);
+        const nights = Math.floor((checkOutDate - checkInDate) / (1000 * 60 * 60 * 24));
+        
+        if (nights > 0) {
+            const totalPrice = nights * pricePerNight;
+            document.getElementById('total_price').textContent = totalPrice.toFixed(2);
+        } else {
+            document.getElementById('total_price').textContent = '0.00';
+        }
+    } else {
+        document.getElementById('total_price').textContent = '0.00';
+    }
+}
+</script>
+{% endblock %} 
