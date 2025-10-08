@@ -13,9 +13,16 @@ pip install -r requirements.txt
 if [ ! -z "$DATABASE_URL" ]; then
     echo "Initializing database for production..."
     python -c "
+import sys
+sys.path.append('.')
 from app import app, db
+from models import User, Room, Booking, Comment, Amenity, HomePageImage, Promo, Notification
 with app.app_context():
-    db.create_all()
-    print('Database tables created successfully')
+    try:
+        db.create_all()
+        print('Database tables created successfully')
+    except Exception as e:
+        print(f'Database initialization error: {e}')
+        sys.exit(1)
 "
 fi
