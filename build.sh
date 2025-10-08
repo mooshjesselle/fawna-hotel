@@ -1,12 +1,6 @@
 #!/bin/bash
-# Update system packages
-apt-get update
-
-# Install dependencies for WeasyPrint and Pillow
-apt-get install -y libffi-dev libjpeg-dev zlib1g-dev libcairo2 libpango-1.0-0 libgdk-pixbuf2.0-0
-
-# Upgrade pip, setuptools, and wheel
+# build.sh
+sudo apt-get update
+sudo apt-get install -y libjpeg-dev zlib1g-dev libpangocairo-1.0-0 libpango1.0-dev libcairo2 libcairo2-dev
 pip install --upgrade pip setuptools wheel
-
-# Install Python dependencies
 pip install -r requirements.txt
