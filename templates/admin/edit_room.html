@@ -1,0 +1,417 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Edit Room - FAWNA Hotel{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+{% endblock %}
+
+{% block admin_content %}
+
+<style>
+    .light-button {
+    background:#42A5F5;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    
+}
+
+.green-button {
+    background:#66BB6A;
+    color: white;
+    border: none;
+    font-size: 14px;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    
+}
+
+.form-check-input {
+    border-color: #42A5F5;
+}
+
+.form-check-input:checked {
+    background-color: #42A5F5;
+    border-color: #42A5F5;
+    background-image: linear-gradient(135deg, #42A5F5, #64B5F6);
+}
+
+.form-check-input:focus {
+    border-color: #64B5F6;
+    box-shadow: 0 0 0 0.25rem rgba(66, 165, 245, 0.25);
+}
+
+</style>
+<div class="card">
+    <div class="card-header">
+        <h3>Edit Room {{ room.room_number }}</h3>
+    </div>
+    <div class="card-body">
+        <form method="POST" enctype="multipart/form-data" id="roomForm" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="cropped_image" id="cropped_image">
+            
+            <div class="mb-3">
+                <label for="room_number" class="form-label">Room Number</label>
+                <input type="text" class="form-control" id="room_number" name="room_number" 
+                       value="{{ room.room_number }}" required
+                       pattern="^\d+[A-Za-z]?$"
+                       title="Room number must be a number optionally followed by a letter"
+                       minlength="2"
+                       maxlength="10">
+                <div class="invalid-feedback">
+                    Please enter a valid room number (e.g., 101 or 101A)
+                </div>
+                <div class="form-text">Example: 101 or 101A</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="room_type_id" class="form-label">Room Type</label>
+                <select class="form-select" id="room_type_id" name="room_type_id" required>
+                    <option value="">Select a room type</option>
+                    {% for room_type in room_types %}
+                    <option value="{{ room_type.id }}" {% if room_type.id == room.room_type_id %}selected{% endif %}>
+                        {{ room_type.name }} - ₱{{ "%.2f"|format(room_type.price_per_night) }}/night
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="invalid-feedback">
+                    Please select a room type
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="floor" class="form-label">Floor</label>
+                <input type="number" class="form-control" id="floor" name="floor" 
+                       value="{{ room.floor }}" required
+                       min="1" max="100">
+                <div class="invalid-feedback">
+                    Floor number must be between 1 and 100
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="occupancy_limit" class="form-label">Occupancy Limit</label>
+                <input type="number" class="form-control" id="occupancy_limit" name="occupancy_limit" 
+                       value="{{ room.occupancy_limit }}" min="1" max="10" required>
+                <div class="invalid-feedback">
+                    Occupancy limit must be between 1 and 10 guests
+                </div>
+                <div class="form-text">Maximum number of guests allowed in this room</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="is_available" class="form-label">Availability Status</label>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="is_available" name="is_available" 
+                           value="true" {% if room.is_available %}checked{% endif %}>
+                    <label class="form-check-label" for="is_available">
+                        Available for booking
+                    </label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Room Image</label>
+                <div id="imagePreview" class="mb-2">
+                    {% if room.image %}
+                    <img src="{{ url_for('static', filename=room.image) }}" alt="Current Room Image" class="img-thumbnail" style="max-width: 200px; height: 150px; object-fit: cover;">
+                    {% endif %}
+                </div>
+                <input type="file" class="form-control" id="image" name="image" 
+                       accept="image/*" onchange="validateAndLoadImage(this)">
+                <div class="invalid-feedback">
+                    Please select a valid image file (JPG, PNG, or GIF)
+                </div>
+                <div class="form-text">Recommended size: 800x600 pixels. Image will be cropped to maintain aspect ratio.</div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Amenities</label>
+                <div class="row">
+                    {% if amenities %}
+                        {% for amenity in amenities %}
+                        <div class="col-md-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" name="amenities" value="{{ amenity.id }}"
+                                       id="amenity{{ amenity.id }}" {% if amenity.id in current_amenities %}checked{% endif %}>
+                                <label class="form-check-label" for="amenity{{ amenity.id }}">
+                                    <i class="fas fa-{{ amenity.icon }}"></i> {{ amenity.name }}
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="col-12">
+                            <div class="alert alert-info d-flex align-items-center" role="alert">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <div>
+                                    No amenities available. Please add amenities first.
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="light-button">Update Room</button>
+                <a href="{{ url_for('admin_rooms') }}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Image Cropper Modal -->
+<div class="modal fade" id="cropperModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Crop Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="img-container" style="height: 400px;">
+                    <img id="cropperImage" src="" style="display: block; max-width: 100%;">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="light-button" onclick="cropImage()">
+                    <i class="fas fa-crop"></i> Crop & Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+<script>
+let cropper = null;
+let cropModal = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    cropModal = new bootstrap.Modal(document.getElementById('cropperModal'), {
+        backdrop: 'static',
+        keyboard: false
+    });
+
+    // Initialize image preview with default if no image
+    const imagePreview = document.getElementById('imagePreview');
+    if (imagePreview && !imagePreview.querySelector('img')) {
+        imagePreview.innerHTML = `
+            <div class="text-center p-3 bg-light rounded" style="max-width: 200px;">
+                <i class="fas fa-bed fa-3x text-secondary"></i>
+            </div>`;
+    }
+
+    // Get form elements for real-time validation
+    const roomNumber = document.getElementById('room_number');
+    const roomType = document.getElementById('room_type_id');
+    const floor = document.getElementById('floor');
+    const occupancyLimit = document.getElementById('occupancy_limit');
+    
+    // Add real-time validation for room number
+    if (roomNumber) {
+        roomNumber.addEventListener('input', function() {
+            validateRoomNumber(this);
+        });
+    }
+    
+    // Add real-time validation for room type
+    if (roomType) {
+        roomType.addEventListener('change', function() {
+            validateRoomType(this);
+        });
+    }
+    
+    // Add real-time validation for floor
+    if (floor) {
+        floor.addEventListener('input', function() {
+            validateFloor(this);
+        });
+    }
+    
+    // Add real-time validation for occupancy limit
+    if (occupancyLimit) {
+        occupancyLimit.addEventListener('input', function() {
+            validateOccupancyLimit(this);
+        });
+    }
+
+    // Form validation
+    document.getElementById('roomForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const form = this;
+        let isValid = true;
+        
+        // Reset previous validation states
+        form.classList.remove('was-validated');
+        [roomNumber, roomType, floor, occupancyLimit].forEach(input => {
+            input.classList.remove('is-invalid');
+        });
+        
+        // Validate all fields
+        if (!validateRoomNumber(roomNumber)) isValid = false;
+        if (!validateRoomType(roomType)) isValid = false;
+        if (!validateFloor(floor)) isValid = false;
+        if (!validateOccupancyLimit(occupancyLimit)) isValid = false;
+        
+        if (isValid) {
+            form.submit();
+        } else {
+            form.classList.add('was-validated');
+        }
+    });
+});
+
+// Validation functions
+function validateRoomNumber(input) {
+    if (!/^\d+[A-Za-z]?$/.test(input.value)) {
+        input.classList.add('is-invalid');
+        return false;
+    } else {
+        input.classList.remove('is-invalid');
+        return true;
+    }
+}
+
+function validateRoomType(input) {
+    if (!input.value) {
+        input.classList.add('is-invalid');
+        return false;
+    } else {
+        input.classList.remove('is-invalid');
+        return true;
+    }
+}
+
+function validateFloor(input) {
+    const floorNum = parseInt(input.value);
+    if (isNaN(floorNum) || floorNum < 1 || floorNum > 100) {
+        input.classList.add('is-invalid');
+        return false;
+    } else {
+        input.classList.remove('is-invalid');
+        return true;
+    }
+}
+
+function validateOccupancyLimit(input) {
+    const occupancyNum = parseInt(input.value);
+    if (isNaN(occupancyNum) || occupancyNum < 1 || occupancyNum > 10) {
+        input.classList.add('is-invalid');
+        return false;
+    } else {
+        input.classList.remove('is-invalid');
+        return true;
+    }
+}
+
+function cleanupCropper() {
+    if (cropper) {
+        cropper.destroy();
+        cropper = null;
+    }
+}
+
+function loadImageForCropping(file) {
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        const image = document.getElementById('cropperImage');
+        image.src = e.target.result;
+        
+        // Show the cropper modal
+        cropModal.show();
+        
+        // Initialize cropper once the modal is shown
+        document.getElementById('cropperModal').addEventListener('shown.bs.modal', function() {
+            cropper = new Cropper(image, {
+                aspectRatio: 4/3,
+                viewMode: 2,
+                dragMode: 'move',
+                autoCropArea: 0.8,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: true,
+                cropBoxMovable: true,
+                cropBoxResizable: true,
+                toggleDragModeOnDblclick: false
+            });
+        }, { once: true });
+    };
+    
+    reader.readAsDataURL(file);
+}
+
+function cropImage() {
+    if (!cropper) {
+        alert('No image to crop');
+        return;
+    }
+    
+    // Get cropped canvas
+    const canvas = cropper.getCroppedCanvas({
+        width: 800,
+        height: 600,
+        imageSmoothingEnabled: true,
+        imageSmoothingQuality: 'high'
+    });
+    
+    if (!canvas) {
+        alert('Could not crop the image');
+        return;
+    }
+    
+    // Convert canvas to data URL and save to hidden input
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    document.getElementById('cropped_image').value = dataUrl;
+    
+    // Update the preview
+    const imagePreview = document.getElementById('imagePreview');
+    imagePreview.innerHTML = `<img src="${dataUrl}" alt="Room Preview" class="img-thumbnail" style="max-width: 200px;">`;
+    
+    // Clean up and close modal
+    cropModal.hide();
+    cleanupCropper();
+}
+
+// Image validation and loading
+function validateAndLoadImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    
+    if (!validTypes.includes(file.type)) {
+        input.classList.add('is-invalid');
+        input.value = '';
+        alert('Invalid file type. Please select a JPEG, PNG, or GIF image.');
+        return;
+    }
+    
+    if (file.size > maxSize) {
+        input.classList.add('is-invalid');
+        input.value = '';
+        alert('Image is too large. Maximum size is 5MB.');
+        return;
+    }
+    
+    input.classList.remove('is-invalid');
+    loadImageForCropping(file);
+}
+</script>
+{% endblock %} 

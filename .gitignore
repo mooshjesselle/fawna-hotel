@@ -1,22 +1,15 @@
-# Environment and config files
-.env
-
-# Python virtual environments
-venv/
-.venv/
-
-# Python cache and compiled files
+# Python/Flask
 __pycache__/
 *.pyc
+instance/
+.env
+flask_session/
+migrations/
+hotel_management.sql
 
-# Databases
-*.db
-
-# Editor and system files
+# VS Code / OS
 .vscode/
-.idea/
 .DS_Store
 
-# Flask instance/logs
-instance/
-*.log
+# Any nested folder you don’t want
+fawna-hotel/

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 30px;
+            margin-top: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #8D6E63;
+            margin: 0;
+            padding: 0;
+        }
+        .content {
+            margin-bottom: 30px;
+        }
+        .note {
+            background-color: #EFEBE9;
+            border-left: 4px solid #8D6E63;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .support-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #8D6E63;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        .support-button:hover {
+            background-color: #6D4C41;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Account Registration Update</h1>
+        </div>
+        
+        <div class="content">
+            <p>Dear {{ user.name }},</p>
+            
+            <p>We have reviewed your registration for FAWNA Hotel. Unfortunately, we are unable to verify your account at this time.</p>
+            
+            <div class="note">
+                <p>Common reasons for rejection include:</p>
+                <ul>
+                    <li>Invalid or unclear ID picture</li>
+                    <li>Incomplete or incorrect information</li>
+                    <li>ID type not accepted</li>
+                </ul>
+            </div>
+            
+            <p>You may register again with:</p>
+            <ul>
+                <li>A clearer picture of your valid ID</li>
+                <li>Complete and accurate information</li>
+                <li>An accepted form of identification</li>
+            </ul>
+            
+            <p>If you believe this is a mistake or need further clarification, please email/contact our support team.</p>
+            
+
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for your interest in FAWNA Hotel.</p>
+            <p>We hope to welcome you as our guest in the future.</p>
+        </div>
+    </div>
+</body>
+</html> 

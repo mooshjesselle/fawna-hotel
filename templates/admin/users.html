@@ -1,0 +1,1580 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Manage Users - FAWNA Hotel{% endblock %}
+
+{% block header_title %}Manage Users{% endblock %}
+
+{% block extra_css %}
+<style>
+    
+    .admin-card {
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+
+    .admin-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .table {
+        margin-bottom: 0;
+        width: 100%;
+        table-layout: fixed;
+    }
+
+    .table th {
+        background-color: var(--primary-color);
+        color: var(--text-light);
+        font-weight: 500;
+        border: none;
+        padding: 12px 16px;
+        white-space: nowrap;
+        text-align: center;
+    }
+
+    .table th:first-child {
+        border-top-left-radius: 8px;
+    }
+
+    .table th:last-child {
+        border-top-right-radius: 8px;
+    }
+
+    .table td {
+        padding: 12px 16px;
+        vertical-align: middle;
+        word-wrap: break-word;
+        text-align: center;
+    }
+    
+    /* Column width adjustments */
+    .table th:nth-child(1), .table td:nth-child(1) { width: 16%; } /* Name */
+    .table th:nth-child(2), .table td:nth-child(2) { width: 16%; } /* Email */
+    .table th:nth-child(3), .table td:nth-child(3) { width: 12%; } /* Phone */
+    .table th:nth-child(4), .table td:nth-child(4) { width: 14%; } /* Registration Status */
+    .table th:nth-child(5), .table td:nth-child(5) { width: 12%; } /* ID Type */
+    .table th:nth-child(6), .table td:nth-child(6) { width: 12%; } /* ID Picture */
+    .table th:nth-child(7), .table td:nth-child(7) { width: 18%; } /* Actions */
+
+    .table tbody tr {
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        width: 100%;
+    }
+
+
+    .btn-confirm {
+        background-color: #198754;
+        color: white;
+    }
+
+    .btn-confirm:hover {
+        background-color: #157347;
+        color: white;
+    }
+
+    .btn-reject {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .btn-reject:hover {
+        background-color: #bb2d3b;
+        color: white;
+    }
+
+    .btn-view {
+    background: linear-gradient(135deg, #42A5F5, #64B5F6);
+    color: white;
+}
+
+    .btn-view:hover {
+        background-color: #138496;
+        color: white;
+    }
+
+    .btn-view-id {
+        background-color: #6c757d;
+        color: white;
+        padding: 8px;
+        width: 36px;
+        height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-view-id:hover {
+        background-color: #5a6268;
+        color: white;
+    }
+
+    .manage-users-badge {
+        display: inline-block;
+        padding: .35em .65em;
+        font-size: .75em;
+        font-weight: 700;
+        line-height: 1;
+        color: #fff;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: .25rem;
+    }
+
+    .manage-users-badge.status-pending {
+        background-color: #ffc107;
+        color: white;
+    }
+
+    .manage-users-badge.status-approved {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .manage-users-badge.status-rejected {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .id-preview {
+        max-width: 200px;
+        max-height: 200px;
+        object-fit: contain;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+    }
+
+    /* Modal Styles */
+    .modal-content {
+        border-radius: 8px;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .modal-header {
+        background-color: var(--primary-color);
+        color: var(--text-light);
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 1rem 1.5rem;
+    }
+
+    .modal-title {
+        font-weight: 500;
+        margin: 0;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        padding-bottom: 0;
+    }
+
+    .user-detail-item {
+        margin-bottom: 1rem;
+    }
+
+    .user-detail-label {
+        font-weight: 500;
+        color: var(--primary-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .user-detail-value {
+        color: #666;
+    }
+
+    .booking-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .booking-item {
+        padding: 0.5rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .booking-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Flash Message Styles */
+    .flash-messages {
+        margin-bottom: 20px;
+    }
+
+    .alert {
+        border: none;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    .alert-info {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .btn-close {
+        font-size: 0.875rem;
+        padding: 0.5rem;
+    }
+
+    .action-buttons .btn {
+        padding: 5px 10px;
+        margin: 0 2px;
+    }
+    .action-buttons .btn i {
+        margin-right: 0;
+    }
+    .btn-edit { 
+        background-color: #ffc107;
+        color: white;
+        border: none;
+    }
+    .btn-delete { 
+        background-color: #dc3545;
+        color: white;
+        border: none;
+    }    
+    .btn-delete:hover {
+        color: white;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .action-buttons .btn-container {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+        min-width: 120px;
+    }
+
+    .action-buttons .btn-container .btn {
+        justify-content: center;
+        width: 100%;
+        min-width: 100px;
+        padding: 8px 16px;
+        height: auto;
+        font-size: 0.9rem;
+    }
+
+    .action-buttons .btn-container .btn i {
+        margin-right: 8px;
+        font-size: 0.9rem;
+    }
+
+    .action-buttons .btn-row {
+        display: flex;
+        gap: 5px;
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .action-buttons .btn-container .btn {
+        justify-content: center;
+        width: 100%;
+        min-width: 80px;
+        padding: 6px 12px;
+    }
+
+    .btn-view-id {
+        background-color: #6c757d;
+        color: white;
+        padding: 6px 12px !important;
+        min-width: 100px !important;
+        height: auto !important;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+
+    .btn i {
+        margin-right: 5px;
+    }
+
+    .btn-icon-only i {
+        margin-right: 0;
+    }
+
+    /* Form Validation Styles */
+    .form-control.is-invalid {
+        border-color: #dc3545;
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+
+    .form-control.is-valid {
+        border-color: #198754;
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+
+    .invalid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875em;
+        color: #dc3545;
+    }
+
+    .form-group {
+        margin-bottom: 1rem;
+        position: relative;
+    }
+
+    .form-group label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+        color: var(--primary-color);
+    }
+
+    .form-control:focus {
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 0.2rem rgba(141, 110, 99, 0.25);
+    }
+
+    .id-preview-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 30px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin: 15px 0;
+        min-height: 80vh;  /* Make container taller */
+    }
+
+    .id-preview-wrapper {
+        position: relative;
+        width: 100%;
+        height: calc(80vh - 150px);  /* Adjust height accounting for controls */
+        margin: 0 auto;
+        overflow: hidden;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: white;
+    }
+
+    .id-preview {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+        cursor: move;
+    }
+
+    .id-controls {
+        display: flex;
+        gap: 15px;
+        margin-top: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        width: 100%;
+        justify-content: center;
+    }
+
+    .id-control-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        background: #6c757d;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        font-size: 1rem;
+    }
+
+    .id-control-btn:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+    }
+
+    .id-control-btn i {
+        font-size: 16px;
+    }
+
+    .modal-dialog-centered {
+        display: flex;
+        align-items: center;
+        min-height: calc(100% - 1rem);
+    }
+
+    /* Responsive styles */
+    @media (max-width: 992px) {
+        .user-table {
+            overflow-x: auto;
+        }
+        
+        .table {
+            min-width: 800px; /* Ensure table doesn't shrink too much */
+        }
+        
+        .admin-card-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .search-section {
+            width: 100%;
+        }
+        
+        .search-input {
+            width: 100%;
+        }
+        
+        .stats-container {
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: space-between;
+        }
+        
+        .stats-card {
+            min-width: calc(50% - 10px);
+            margin-bottom: 10px;
+            flex: 0 0 calc(50% - 10px);
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .stats-card {
+            min-width: 100%;
+            flex: 0 0 100%;
+        }
+    }
+    
+    /* Search section styles */
+    .search-section {
+        display: flex;
+        align-items: center;
+    }
+    
+    .search-input {
+        width: 300px;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .stats-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-bottom: 20px;
+        justify-content: space-between;
+    }
+    
+    .stats-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex: 1;
+        min-width: 180px;
+    }
+    
+    .stats-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: var(--primary-color);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+    
+    .stats-info {
+        flex: 1;
+    }
+    
+    .stats-info h3 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+    
+    .stats-info p {
+        margin: 5px 0 0;
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+
+    /* Additional styles for user details modal */
+    .user-details-list {
+        margin-bottom: 20px;
+    }
+
+    .detail-item {
+        margin-bottom: 12px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .detail-item label {
+        font-weight: 500;
+        color: #666;
+        min-width: 120px;
+    }
+
+    .detail-item span {
+        color: #333;
+    }
+
+    .section-title {
+        padding-bottom: 8px;
+        border-bottom: 2px solid var(--primary-color);
+        margin-bottom: 15px;
+    }
+
+    .booking-history-table {
+        font-size: 0.9rem;
+    }
+
+    .booking-history-table th {
+        background-color: #f8f9fa;
+        color: #333;
+        font-weight: 500;
+    }
+
+    .id-preview-container {
+        height: 300px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 0;
+    }
+
+    .id-preview-wrapper {
+        height: 220px;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0;
+    }
+
+    .id-preview {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+    }
+
+    .modal-body {
+        padding: 1.5rem;
+        padding-bottom: 0;
+    }
+
+    .modal-header {
+        background-color: var(--primary-color);
+        color: var(--text-light);
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        padding: 1rem 1.5rem;
+    }
+
+    .id-controls {
+        padding: 10px 0;
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .id-control-btn {
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        background: #6c757d;
+        color: white;
+        border: none;
+        transition: all 0.2s;
+    }
+
+    .id-control-btn:hover {
+        background: #5a6268;
+    }
+
+
+   
+
+    .id-thumbnail-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .id-thumbnail {
+        max-width: 200px;
+        max-height: 120px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        object-fit: contain;
+        transition: transform 0.2s;
+        background: white;
+        cursor: pointer;
+    }
+
+    .id-thumbnail:hover {
+        transform: scale(1.02);
+    }
+
+    .id-preview-container {
+        background: #f8f9fa;
+        padding: 20px;
+        height: 500px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .id-preview-wrapper {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .id-preview {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+
+    #userDetailIdPicture {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="stats-container">
+    <div class="stats-card">
+        <div class="stats-icon">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stats-info">
+            <h3>{{ total_users }}</h3>
+            <p>Total Users</p>
+        </div>
+    </div>
+    <div class="stats-card">
+        <div class="stats-icon">
+            <i class="fas fa-calendar-check"></i>
+        </div>
+        <div class="stats-info">
+            <h3>{{ total_bookings }}</h3>
+            <p>Total Bookings</p>
+        </div>
+    </div>
+    <div class="stats-card">
+        <div class="stats-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stats-info">
+            <h3>{{ users|selectattr('registration_status', 'equalto', 'approved')|list|length }}</h3>
+            <p>Verified Users</p>
+        </div>
+    </div>
+    <div class="stats-card">
+        <div class="stats-icon">
+            <i class="fas fa-clock"></i>
+        </div>
+        <div class="stats-info">
+            <h3>{{ users|selectattr('registration_status', 'equalto', 'pending')|list|length }}</h3>
+            <p>Pending Users</p>
+        </div>
+    </div>
+    <div class="stats-card">
+        <div class="stats-icon">
+            <i class="fas fa-times-circle"></i>
+        </div>
+        <div class="stats-info">
+            <h3>{{ users|selectattr('registration_status', 'equalto', 'rejected')|list|length }}</h3>
+            <p>Rejected Users</p>
+        </div>
+    </div>
+</div>
+
+<div class="admin-card">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+    <div class="admin-card-header">
+        <h2 class="admin-card-title">User Management</h2>
+        <div class="search-section">
+            <div class="input-group search-input">
+                <input type="text" class="form-control" id="searchUser" placeholder="Search users...">
+                <button class="btn btn-admin-primary" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="user-table">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Registration Status</th>
+                    <th>ID Type</th>
+                    <th>ID Picture</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                {% if not user.is_admin %}
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.phone or 'N/A' }}</td>
+                    <td>
+                        <span class="manage-users-badge status-{{ user.registration_status }}">
+                            {%- if user.registration_status == 'approved' -%}
+                                Verified
+                            {%- else -%}
+                                {{ user.registration_status|title }}
+                            {%- endif -%}
+                        </span>
+                    </td>
+                    <td>
+                        {% set id_types = {
+                            'national_id': 'National ID (PhilSys)',
+                            'drivers_license': 'Driver\'s License',
+                            'passport': 'Passport',
+                            'sss': 'SSS ID / UMID',
+                            'sss_id': 'SSS ID / UMID',
+                            'postal': 'Postal ID',
+                            'postal_id': 'Postal ID',
+                            'voters': 'Voter\'s ID',
+                            'voters_id': 'Voter\'s ID',
+                            'prc': 'PRC ID',
+                            'prc_id': 'PRC ID',
+                            'company': 'Company ID',
+                            'student': 'Student ID',
+                            'philhealth': 'PhilHealth ID',
+                            'tin': 'TIN ID',
+                            'gsis': 'GSIS eCard',
+                            'pagibig': 'Pag-IBIG ID',
+                            'other': 'Other Government-issued ID'
+                        } %}
+                        {{ id_types.get(user.id_type, 'No ID') }}
+                    </td>
+                    <td>
+                        {% if user.id_picture %}
+                            <button class="btn btn-view-id view-id-btn" data-user-id="{{ user.id }}" title="View ID" style="font-size: 14px;">
+                                <i class="fas fa-id-card"></i> View ID
+                            </button>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="action-buttons">
+                        {% if user.registration_status == 'pending' %}
+                                <div class="btn-container">
+                                    <button class="btn btn-confirm approve-user-btn" data-user-id="{{ user.id }}" title="Verify User">
+                                        <i class="fas fa-check"></i> Verify
+                                    </button>
+                                    <button class="btn btn-reject reject-user-btn" data-user-id="{{ user.id }}" title="Reject User">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </div>
+                        {% else %}
+                                <div class="btn-row">
+                                    <button class="btn btn-view view-user-btn" data-user-id="{{ user.id }}" title="View User">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-delete delete-user-btn" data-user-id="{{ user.id }}" title="Delete User">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                        {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">User Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body pb-0">
+                <!-- Personal Details Section -->
+                <div class="section-title mb-3">
+                    <h6 class="fw-bold">Personal Information</h6>
+            </div>
+                <div class="user-details-list">
+                    <div class="detail-item">
+                        <label>Name:</label>
+                        <span id="userDetailName"></span>
+        </div>
+                    <div class="detail-item">
+                        <label>Email:</label>
+                        <span id="userDetailEmail"></span>
+    </div>
+                    <div class="detail-item">
+                        <label>Phone:</label>
+                        <span id="userDetailPhone"></span>
+</div>
+                    <div class="detail-item">
+                        <label>Registration Status:</label>
+                        <span id="userDetailStatus"></span>
+                    </div>
+                    <div class="detail-item">
+                        <label>ID Type:</label>
+                        <span id="userDetailIdType"></span>
+                    </div>
+                    <div class="detail-item">
+                        <label>Registration Date:</label>
+                        <span id="userDetailRegDate"></span>
+                    </div>
+                    <div class="detail-item">
+                        <label>ID Picture:</label>
+                        <span id="userDetailIdPicture">
+                            <div class="id-thumbnail-container">
+                                <img src="" alt="ID Picture" class="id-thumbnail" id="idThumbnail" style="display: none;" onclick="viewFullID()">
+                            </div>
+                            <span class="text-muted no-id-text">No ID uploaded</span>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Booking History Section -->
+                <div class="mt-4">
+                    <div class="section-title mb-3">
+                        <h6 class="fw-bold">Booking History</h6>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover booking-history-table">
+                            <thead>
+                                <tr>
+                                    <th>Room</th>
+                                    <th>Check-in</th>
+                                    <th>Check-out</th>
+                                    <th>Status</th>
+                                    <th>Total Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookingHistoryBody">
+                                <!-- Booking history will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ID Picture Modal -->
+<div class="modal fade" id="idPictureModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">ID Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                    <div class="id-preview-container">
+                        <div class="id-preview-wrapper">
+                        <img src="" alt="ID Picture" class="id-preview" id="idPreviewImage">
+                        </div>
+                        <div class="id-controls">
+                        <button class="id-control-btn" onclick="zoomID(1.1)" title="Zoom In">
+                            <i class="fas fa-search-plus"></i>
+                            </button>
+                        <button class="id-control-btn" onclick="zoomID(0.9)" title="Zoom Out">
+                            <i class="fas fa-search-minus"></i>
+                            </button>
+                        <button class="id-control-btn" onclick="rotateID()" title="Rotate">
+                            <i class="fas fa-redo"></i>
+                            </button>
+                        <button class="id-control-btn" onclick="resetID()" title="Reset">
+                            <i class="fas fa-sync"></i>
+                            </button>
+                        </div>
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function viewFullID() {
+    const userDetailsModal = bootstrap.Modal.getInstance(document.getElementById('userDetailsModal'));
+    userDetailsModal.hide();
+    
+    const idPictureModal = new bootstrap.Modal(document.getElementById('idPictureModal'));
+    idPictureModal.show();
+
+    // Reset transform values when opening
+    resetID();
+                // Initialize draggable functionality
+                initDraggable();
+
+    document.getElementById('idPictureModal').addEventListener('hidden.bs.modal', function () {
+        userDetailsModal.show();
+    }, { once: true });
+}
+
+function viewUserDetails(userId) {
+    fetch(`/admin/users/${userId}/read`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert('Error loading user data');
+                return;
+            }
+            const user = data.user;
+            // Update personal details
+            document.getElementById('userDetailName').textContent = user.name;
+            document.getElementById('userDetailEmail').textContent = user.email;
+            document.getElementById('userDetailPhone').textContent = user.phone || 'N/A';
+            document.getElementById('userDetailStatus').innerHTML = `<span class="manage-users-badge status-${user.registration_status || 'approved'}">${user.registration_status === 'approved' ? 'Verified' : (user.registration_status ? user.registration_status.charAt(0).toUpperCase() + user.registration_status.slice(1) : 'Verified')}</span>`;
+            
+            const idTypes = {
+                national_id: 'National ID (PhilSys)',
+                drivers_license: 'Driver\'s License',
+                passport: 'Passport',
+                sss: 'SSS ID / UMID',
+                sss_id: 'SSS ID / UMID',
+                postal: 'Postal ID',
+                postal_id: 'Postal ID',
+                voters: 'Voter\'s ID',
+                voters_id: 'Voter\'s ID',
+                prc: 'PRC ID',
+                prc_id: 'PRC ID',
+                company: 'Company ID',
+                student: 'Student ID',
+                philhealth: 'PhilHealth ID',
+                tin: 'TIN ID',
+                gsis: 'GSIS eCard',
+                pagibig: 'Pag-IBIG ID',
+                other: 'Other Government-issued ID'
+            };
+            document.getElementById('userDetailIdType').textContent = idTypes[user.id_type] || 'No ID';
+            
+            // Format registration date properly with timezone handling
+            const registrationDate = user.join_date ? new Date(user.join_date + 'Z') : null;
+            document.getElementById('userDetailRegDate').textContent = registrationDate ? registrationDate.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                timeZone: 'Asia/Manila'
+            }) : 'N/A';
+
+            // Update ID picture thumbnail (with fallback for legacy path)
+            const idThumbnail = document.getElementById('idThumbnail');
+            const noIdText = document.querySelector('.no-id-text');
+            const idPreviewImage = document.getElementById('idPreviewImage');
+            
+            if (user.id_picture) {
+                const rel = (user.id_picture || '').replace(/^ids\//, '');
+                const primary = `/static/ids/${rel}`;
+                const fallback = `/static/room_images/ids/${rel}`; // legacy location
+                
+                // Thumbnail
+                idThumbnail.onerror = function () {
+                    if (this.src !== fallback) {
+                        this.src = fallback;
+                    }
+                };
+                idThumbnail.src = primary;
+                idThumbnail.style.display = 'block';
+                noIdText.style.display = 'none';
+
+                // Preview image
+                idPreviewImage.onerror = function () {
+                    if (this.src !== fallback) {
+                        this.src = fallback;
+                    }
+                };
+                idPreviewImage.src = primary;
+            } else {
+                idThumbnail.style.display = 'none';
+                noIdText.style.display = 'inline';
+            }
+
+            // Update booking history
+            const bookingHistoryBody = document.getElementById('bookingHistoryBody');
+            bookingHistoryBody.innerHTML = '';
+            
+            if (user.booking_history && user.booking_history.length > 0) {
+                user.booking_history.forEach(booking => {
+                    const checkInDate = new Date(booking.check_in + 'Z');
+                    const checkOutDate = new Date(booking.check_out + 'Z');
+                    
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${booking.room_number} - ${booking.room_type}</td>
+                        <td>${checkInDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}</td>
+                        <td>${checkOutDate.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila' })}</td>
+                        <td><span class="status-badge-detail status-${booking.status.toLowerCase()}">${booking.status}</span></td>
+                        <td>₱${booking.total_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    `;
+                    bookingHistoryBody.appendChild(row);
+                });
+            } else {
+                bookingHistoryBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">No booking history found</td>
+                    </tr>
+                `;
+            }
+
+            // Show the modal
+            const modal = document.getElementById('userDetailsModal');
+            new bootstrap.Modal(modal).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading user details');
+        });
+}
+
+function editUser(userId) {
+    // Create a modal for editing user details
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.id = 'editUserModal';
+    modal.setAttribute('tabindex', '-1');
+    modal.setAttribute('aria-hidden', 'true');
+    
+    // Fetch user data first
+    fetch(`/admin/users/${userId}/read`)
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                alert('Error loading user data');
+                return;
+            }
+            
+            const user = data.user;
+            
+            // Create modal content
+            modal.innerHTML = `
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit User</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <form id="editUserForm">
+                                <div class="mb-3">
+                                    <label for="userName" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="userName" value="${user.name}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="userEmail" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="userEmail" value="${user.email}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="userPhone" class="form-label">Phone</label>
+                                    <input type="text" class="form-control" id="userPhone" value="${user.phone || ''}">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="newPassword" class="form-label">New Password (leave blank to keep current)</label>
+                                    <input type="password" class="form-control" id="newPassword">
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="saveUserChanges(${userId})">Save Changes</button>
+                        </div>
+                        </div>
+                    </div>
+                `;
+
+            // Add modal to the document
+            document.body.appendChild(modal);
+            
+            // Show the modal
+            const modalInstance = new bootstrap.Modal(modal);
+            modalInstance.show();
+            
+            // Remove modal from DOM when hidden
+            modal.addEventListener('hidden.bs.modal', function () {
+                document.body.removeChild(modal);
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading user data');
+        });
+}
+
+function saveUserChanges(userId) {
+    // Get form values
+    const name = document.getElementById('userName').value;
+    const email = document.getElementById('userEmail').value;
+    const phone = document.getElementById('userPhone').value;
+    const newPassword = document.getElementById('newPassword').value;
+    
+    // Validate required fields
+    if (!name || !email) {
+        alert('Name and email are required');
+        return;
+    }
+    
+    // Prepare data for API
+    const data = {
+        name: name,
+        email: email,
+        phone: phone
+    };
+    
+    // Add password only if provided
+    if (newPassword) {
+        data.new_password = newPassword;
+    }
+    
+    // Send update request
+    fetch(`/admin/users/${userId}/update`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            alert('User updated successfully');
+            // Close the modal
+            bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+            // Reload the page to show updated data
+            location.reload();
+        } else {
+            alert(result.message || 'Error updating user');
+        }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        alert('Error updating user');
+        });
+}
+
+function approveUser(userId) {
+    if (confirm('Are you sure you want to approve this user?')) {
+        // Show loading indicator
+        const button = document.querySelector(`.approve-user-btn[data-user-id="${userId}"]`);
+        const actionCell = button.closest('td');
+        const originalContent = actionCell.innerHTML;
+        actionCell.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><div class="mt-2">Verifying user...</div></div>';
+        
+        fetch(`/admin/users/approve/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('User approved successfully');
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error approving user');
+                    // Restore original content if there's an error
+                    actionCell.innerHTML = originalContent;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error approving user');
+                // Restore original content if there's an error
+                actionCell.innerHTML = originalContent;
+            });
+    }
+}
+
+function rejectUser(userId) {
+    if (confirm('Are you sure you want to reject this user?')) {
+        // Show loading indicator
+        const button = document.querySelector(`.reject-user-btn[data-user-id="${userId}"]`);
+        const actionCell = button.closest('td');
+        const originalContent = actionCell.innerHTML;
+        actionCell.innerHTML = '<div class="text-center"><div class="spinner-border text-danger" role="status"><span class="visually-hidden">Loading...</span></div><div class="mt-2">Rejecting user...</div></div>';
+        
+        fetch(`/admin/users/reject/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('User rejected successfully');
+                    location.reload();
+                } else {
+                    alert(data.message || 'Error rejecting user');
+                    // Restore original content if there's an error
+                    actionCell.innerHTML = originalContent;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error rejecting user');
+                // Restore original content if there's an error
+                actionCell.innerHTML = originalContent;
+            });
+    }
+}
+
+function deleteUser(userId) {
+    if (confirm('Warning: Deleting this user will also remove all their bookings and related data. Are you sure you want to proceed?')) {
+        // Show loading indicator
+        const button = document.querySelector(`.delete-user-btn[data-user-id="${userId}"]`);
+        const userRow = button.closest('tr');
+        const actionCell = button.closest('td');
+        const originalContent = actionCell.innerHTML;
+        actionCell.innerHTML = '<div class="text-center"><div class="spinner-border text-danger" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        // Get CSRF token from meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        // Send delete request
+        fetch(`/admin/users/${userId}/delete`, {  // Fixed URL to match backend route
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken || '',  // Add CSRF token
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    try {
+                        const data = JSON.parse(text);
+                        throw new Error(data.message || `Failed to delete user (${response.status})`);
+                    } catch (e) {
+                        throw new Error(`Failed to delete user (${response.status})`);
+                    }
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Remove the user's row
+                userRow.remove();
+                
+                // Show success message
+                const flashMessages = document.querySelector('.flash-messages');
+                if (flashMessages) {
+                    const successAlert = document.createElement('div');
+                    successAlert.className = 'alert alert-success alert-dismissible fade show';
+                    successAlert.innerHTML = `
+                        User deleted successfully
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    `;
+                    flashMessages.appendChild(successAlert);
+                }
+
+                // Update the stats
+                const totalUsersElement = document.querySelector('.stats-card:first-child .stats-info h3');
+                if (totalUsersElement) {
+                    const currentTotal = parseInt(totalUsersElement.textContent);
+                    if (!isNaN(currentTotal)) {
+                        totalUsersElement.textContent = (currentTotal - 1).toString();
+                    }
+                }
+
+                // Reload the page after a short delay
+                setTimeout(() => {
+                    window.location.href = '/admin/users';  // Use full URL path
+                }, 1000);
+            } else {
+                throw new Error(data.message || 'Failed to delete user');
+            }
+        })
+        .catch(error => {
+            console.error('Delete error:', error);
+            // Restore original content
+            actionCell.innerHTML = originalContent;
+            
+            // Show error message
+            const flashMessages = document.querySelector('.flash-messages');
+            if (flashMessages) {
+                const errorAlert = document.createElement('div');
+                errorAlert.className = 'alert alert-danger alert-dismissible fade show';
+                errorAlert.innerHTML = `
+                    ${error.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                flashMessages.appendChild(errorAlert);
+            }
+        });
+    }
+}
+
+// Function to update user statistics after deletion
+function updateUserStats() {
+    fetch('/admin/users/stats')
+        .then(response => response.json())
+        .then(data => {
+            // Update total users
+            const totalUsersElement = document.querySelector('.stats-card:nth-child(1) .stats-info h3');
+            if (totalUsersElement) {
+                totalUsersElement.textContent = data.total_users;
+            }
+
+            // Update verified users
+            const verifiedUsersElement = document.querySelector('.stats-card:nth-child(3) .stats-info h3');
+            if (verifiedUsersElement) {
+                verifiedUsersElement.textContent = data.verified_users;
+            }
+
+            // Update pending users
+            const pendingUsersElement = document.querySelector('.stats-card:nth-child(4) .stats-info h3');
+            if (pendingUsersElement) {
+                pendingUsersElement.textContent = data.pending_users;
+            }
+
+            // Update rejected users
+            const rejectedUsersElement = document.querySelector('.stats-card:nth-child(5) .stats-info h3');
+            if (rejectedUsersElement) {
+                rejectedUsersElement.textContent = data.rejected_users;
+            }
+        })
+        .catch(error => {
+            console.error('Error updating stats:', error);
+        });
+}
+
+// Add these new functions for image manipulation
+let currentZoom = 1;
+let currentRotation = 0;
+let isDragging = false;
+let startX, startY, translateX = 0, translateY = 0;
+
+function zoomID(factor) {
+    currentZoom *= factor;
+    // Limit zoom range
+    currentZoom = Math.min(Math.max(currentZoom, 0.5), 3);
+    updateImageTransform();
+}
+
+function rotateID() {
+    currentRotation += 90;
+    updateImageTransform();
+}
+
+function resetID() {
+    currentZoom = 1;
+    currentRotation = 0;
+    translateX = 0;
+    translateY = 0;
+    updateImageTransform();
+}
+
+function updateImageTransform() {
+    const image = document.getElementById('idPreviewImage');
+    if (image) {
+        image.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${currentRotation}deg) scale(${currentZoom})`;
+    }
+}
+
+function initDraggable() {
+    const image = document.getElementById('idPreviewImage');
+    if (!image) return;
+
+    image.addEventListener('mousedown', startDragging);
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stopDragging);
+    
+    // Prevent default drag behavior
+    image.addEventListener('dragstart', (e) => e.preventDefault());
+}
+
+function startDragging(e) {
+    isDragging = true;
+    startX = e.clientX - translateX;
+    startY = e.clientY - translateY;
+}
+
+function drag(e) {
+    if (!isDragging) return;
+    
+    translateX = e.clientX - startX;
+    translateY = e.clientY - startY;
+    updateImageTransform();
+}
+
+function stopDragging() {
+    isDragging = false;
+}
+
+function viewIDOnly(userId) {
+    fetch(`/admin/users/${userId}`)
+        .then(response => response.json())
+        .then(data => {
+            const idPreviewImage = document.getElementById('idPreviewImage');
+            
+            if (data.id_picture) {
+                const rel = (data.id_picture || '').replace(/^ids\//, '');
+                const primary = `/static/ids/${rel}`;
+                const fallback = `/static/room_images/ids/${rel}`; // legacy location
+                idPreviewImage.onerror = function () {
+                    if (this.src !== fallback) {
+                        this.src = fallback;
+                    }
+                };
+                idPreviewImage.src = primary;
+                
+                // Show the ID picture modal
+                const idPictureModal = new bootstrap.Modal(document.getElementById('idPictureModal'));
+                idPictureModal.show();
+
+                // Reset transform values when opening
+                resetID();
+                // Initialize draggable functionality
+                initDraggable();
+            } else {
+                alert('No ID picture available');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error loading ID picture');
+        });
+}
+
+// Add event listeners for the buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Event delegation for view buttons
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.closest('.view-user-btn')) {
+            const button = e.target.closest('.view-user-btn');
+            const userId = button.getAttribute('data-user-id');
+            viewUserDetails(userId);
+        }
+    });
+
+    // Event delegation for delete buttons
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.closest('.delete-user-btn')) {
+            const button = e.target.closest('.delete-user-btn');
+            const userId = button.getAttribute('data-user-id');
+            deleteUser(userId);
+        }
+    });
+    
+    // Event delegation for approve buttons
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.closest('.approve-user-btn')) {
+            const button = e.target.closest('.approve-user-btn');
+            const userId = button.getAttribute('data-user-id');
+            approveUser(userId);
+        }
+    });
+    
+    // Event delegation for reject buttons
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.closest('.reject-user-btn')) {
+            const button = e.target.closest('.reject-user-btn');
+            const userId = button.getAttribute('data-user-id');
+            rejectUser(userId);
+        }
+    });
+
+    // Event delegation for view ID buttons
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.closest('.view-id-btn')) {
+            const button = e.target.closest('.view-id-btn');
+            const userId = button.getAttribute('data-user-id');
+            viewIDOnly(userId); // Changed to use the new viewIDOnly function
+        }
+    });
+});
+</script>
+{% endblock %} 

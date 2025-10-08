@@ -1,0 +1,140 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Edit Room{% endblock %}
+
+{% block extra_css %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css">
+{% endblock %}
+
+{% block admin_content %}
+<style>
+    .available-badge {
+        background-color: #28a745 !important;
+        color: white;
+    }
+
+    .occupied-badge {
+        background-color: #dc3545 !important;
+        color: white;
+    }
+    
+    .btn-view {
+        background: linear-gradient(135deg, #42A5F5, #64B5F6);
+        color: white;
+        border: none;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-view:hover {
+        background: linear-gradient(135deg, #2196F3, #42A5F5);
+        color: white;
+    }
+</style>
+<div class="container">
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4>Room Type Details</h4>
+                    <a href="{{ url_for('admin_rooms') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Basic Information</h5>
+                            <table class="table">
+                                <tr>
+                                    <th>Name:</th>
+                                    <td>{{ room_type.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Description:</th>
+                                    <td>{{ room_type.description }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Price per Night:</th>
+                                    <td>₱{{ "{:,.2f}".format(room_type.price_per_night) }}</td>
+
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Statistics</h5>
+                            <table class="table">
+                                <tr>
+                                    <th>Total Rooms:</th>
+                                    <td>{{ rooms|length }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Available Rooms:</th>
+                                    <td>{{ rooms|selectattr('is_available', 'equalto', true)|list|length }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Occupied Rooms:</th>
+                                    <td>{{ rooms|selectattr('is_available', 'equalto', false)|list|length }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Rooms of this Type</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Room Number</th>
+                                    <th>Floor</th>
+                                    <th>Status</th>
+                                    <th>Amenities</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for room in rooms %}
+                                <tr>
+                                    <td>{{ room.room_number }}</td>
+                                    <td>{{ room.floor }}</td>
+                                    <td>
+                                        <span class="badge {% if room.is_available %}available-badge
+                                                          {% else %}occupied-badge{% endif %}">
+                                            {{ 'Available' if room.is_available else 'Occupied' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% for amenity in room.amenities %}
+                                        <span class="badge bg-info me-1">{{ amenity.name }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('admin_view_room', room_id=room.id) }}" 
+                                           class="btn btn-view btn-sm">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

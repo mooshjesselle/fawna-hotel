@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    {% if current_user.is_authenticated %}
+    <input type="hidden" id="user-id" value="{{ current_user.id }}">
+    <input type="hidden" id="user-name" value="{{ current_user.name }}">
+    <input type="hidden" id="user-email" value="{{ current_user.email }}">
+    <input type="hidden" id="user-phone" value="{{ current_user.phone }}">
+    <input type="hidden" id="approved-bookings-json" value='[]'>
+    {% endif %}
+    <title>{% block title %}{% endblock %}</title>
+    <!-- Favicon configuration for better browser compatibility -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/fawna.png') }}" sizes="32x32">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/fawna.png') }}" sizes="16x16">
+    <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='images/fawna.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/fawna.png') }}">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome with offline fallback -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Local Font Awesome fallback -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/font-awesome.min.css') }}" media="print" onload="this.media='all'">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Layout CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    <!-- Base CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <!-- Custom CSS -->
+
+    <!-- Page-specific CSS -->
+    {% block extra_css %}{% endblock %}
+    <style>
+.mark-all-read-btn:hover, .mark-all-read-btn:focus {
+    background-color: #6D4C41 !important;
+    color: #fff !important;
+    transition: background 0.2s;
+}
+
+/* Ensure smooth backdrop transitions */
+.modal-backdrop {
+    transition: opacity 0.3s ease-in-out;
+}
+</style>
+
+</head>
+<body>
+    <header class="main-header">
+        <div class="logo-section">
+            <a href="{{ url_for('index') }}" class="logo-link" aria-label="Go to homepage">
+                <img src="{{ url_for('static', filename='images/fawna.png') }}" alt="FAWNA Hotel">
+            </a>
+            <span class="navbar-brand">FAWNA Hotel</span>
+        </div>
+        {% if current_user.is_authenticated %}
+        <div class="header-actions">
+        </div>
+        {% endif %}
+   
+        <button class="navbar-toggler" id="navbar-toggler" aria-label="Toggle navigation">
+            <i class="fas fa-bars"></i>
+        </button>
+        <nav>
+            <ul class="nav-links-container{% if current_user.is_authenticated %} has-profile{% endif %}" id="navbar-menu">
+                <li id="mobile-background-icons"><a href="{{ url_for('index') }}"><i class="fas fa-home"></i> <span class="nav-text">Home</span></a></li>
+                <li id="mobile-background-icons"><a href="{{ url_for('rooms') }}"><i class="fas fa-bed"></i> <span class="nav-text">Rooms</span></a></li>
+                <li id="mobile-background-icons"><a href="{{ url_for('special_offers') }}"><i class="fas fa-tags"></i> <span class="nav-text">Promos</span></a></li>
+                {% if current_user.is_authenticated %}
+                    <li id="mobile-background-icons"><a href="#" id="viewOrdersMenuItem"><i class="fas fa-utensils"></i> <span class="nav-text">Orders</span></a></li>
+                    <li id="mobile-background-icons" class="d-md-none"><a href="{{ url_for('notifications_page') }}"><i class="fas fa-bell"></i></a></li>
+                    <!-- Mobile-only account links inside hamburger menu (keeps all in one column under the icons) -->
+                    <li id="mobile-background-icons" class="d-md-none"><a href="{{ url_for('dashboard' if not current_user.is_admin else 'admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> <span class="nav-text">Dashboard</span></a></li>
+                    <li id="mobile-background-icons" class="d-md-none"><a href="{{ url_for('booking_history') }}"><i class="fas fa-history"></i> <span class="nav-text">History</span></a></li>
+                  
+                    <!-- My Account (toggle shows Logout) -->
+                    <!-- Mobile avatar in 4th column -->
+                   
+                    <!-- Mobile logout in 5th column -->
+
+                    <a href="#" id="profile-style" style="display:flex;align-items:center;justify-content:center;">
+                    <img src="{{ url_for('static', filename=current_user.profile_pic if current_user.profile_pic else 'images/profileimage.png') }}" alt="Profile" style="width:65px;height:65px;border-radius:50%;border:1px solid rgba(255,255,255,0.6);object-fit:cover;">
+                    </a>
+                    <li id="mobile-background-icons" class="d-md-none"><a href="{{ url_for('profile') }}"><i class="fas fa-user-cog"></i> <span class="nav-text">Profile Settings</span></a></li>
+                    
+                    <li class="d-md-none" id="mobileLogoutCell">    
+                        <a href="{{ url_for('logout') }}" class="logout-link" style="white-space:nowrap;display:flex;align-items:center;justify-content:center;"><i class="fas fa-sign-out-alt"></i> <span class="nav-text">Logout</span></a>
+                    </li>
+
+
+                    <li class="nav-item dropdown d-none d-md-block">
+                <a href="#" class="nav-link" id="notificationsDropdown" role="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationCount" style="display: none;">0</span>
+                </a>
+                <div class="dropdown-menu notification-dropdown" aria-labelledby="notificationsDropdown">
+                    <div class="notification-header">
+                        <h6>Notifications</h6>
+                        <div class="notification-actions">
+                            <button id="markAllRead" title="Mark all as read" data-bs-toggle="modal" data-bs-target="#markAllReadModal">
+                                <i class="fas fa-check-double"></i> Mark all as read
+                            </button>
+                            <button id="clearAll" title="Clear all notifications">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="notification-body" id="notificationList">
+                        <!-- Notifications will be dynamically inserted here -->
+                        <div class="notification-empty">
+                            <i class="fas fa-bell-slash"></i>
+                            <p>No notifications yet</p>
+                        </div>
+                    </div>
+                    <div class="notification-footer" id="notificationFooter" style="display: none;">
+                        <button class="btn btn-link w-100" onclick="window.location.href='/notifications-page'">
+                            <i class="fas fa-external-link-alt me-2"></i>
+                            View All Notifications
+                        </button>
+                    </div>
+                </div>
+                    </li>
+                    <li class="profile-section d-none d-md-block">
+                        <a href="#" onclick="toggleProfileDropdown(event)">
+                            <img src="{{ url_for('static', filename=current_user.profile_pic if current_user.profile_pic else 'images/profileimage.png') }}" 
+                                 alt="Profile" class="profile-pic">
+                            <span class="nav-text">My Account</span>
+                        </a>
+                        <div class="dropdown-menu" id="profileDropdown">
+                            <a href="{{ url_for('dashboard' if not current_user.is_admin else 'admin_dashboard') }}">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                            <a href="{{ url_for('booking_history') }}">
+                                <i class="fas fa-history"></i> History
+                            </a>
+                            <a href="{{ url_for('profile') }}">
+                                <i class="fas fa-user-cog"></i> Profile Settings
+                            </a>
+                            <a href="{{ url_for('logout') }}" class="logout-link">
+                                <i class="fas fa-sign-out-alt"></i> Logout
+                            </a>
+                        </div>
+                    </li>
+                {% else %}
+                    <li>
+                        <a href="{{ url_for('login') }}">
+                            <i class="fas fa-sign-in-alt"></i> <span class="nav-text">Login</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Page Loader Overlay (covers entire screen) -->
+    <div id="page-loader" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(210,180,140,0.35);z-index:9999;align-items:center;justify-content:center;transition:opacity 0.4s;">
+      <div class="spinner-border" style="color:#6D4C41;width:3rem;height:3rem;" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Connectivity Notification (sticks under navbar) -->
+    <div id="offline-notification" style="display:none;position:fixed;left:0;right:0;background:#dc3545;color:#fff;padding:10px 14px;text-align:center;z-index:10000;font-weight:600; box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    transition: transform .25s ease, opacity .25s ease;
+    border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;">
+        <span class="notif-text"><i class="fas fa-wifi" style="margin-right:8px;"></i>No Internet Connection - Some features may be limited</span>
+    </div>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="main-footer">
+            <div class="footer-section">
+                <h3>Address</h3>
+                <p>
+                    <a href="https://www.google.com/maps/search/Santa+Cruz,+Laguna" 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       class="footer-link"
+                       title="Open in Google Maps">
+                        <i class="fas fa-map-marker-alt me-2"></i>Santa Cruz, Laguna
+                    </a>
+                </p>
+            </div>
+            <div class="footer-section">
+                <h3>Contact</h3>
+                <p>
+                    <a href="sms:+639932670873" 
+                       class="footer-link"
+                       title="Send SMS">
+                        <i class="fas fa-sms me-2"></i>+63 993 267 0873
+                    </a>
+                </p>
+            </div>
+            <div class="footer-section">
+                <h3>Email</h3>
+                <p>
+                    <a href="mailto:fawnahotel@gmail.com" 
+                       class="footer-link"
+                       title="Send Email">
+                        <i class="fas fa-envelope me-2"></i>fawnahotel@gmail.com
+                    </a>
+                </p>
+        </div>
+    </footer>
+
+    <!-- Logout Confirmation Modal -->
+    <div class="modal fade" id="logoutConfirmModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header" style="background-color:#6D4C41;color:#fff;">
+            <h5 class="modal-title"><i class="fas fa-sign-out-alt me-2"></i>Logout</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p class="mb-0">Do you want to logout?</p>
+          </div>
+          <div class="modal-footer justify-content-center border-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <a href="{{ url_for('logout') }}" class="btn btn-primary" style="background:#6D4C41;border:none;">Logout</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Notification Modal -->
+    <div class="modal fade" id="notificationModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content" style="border-radius: 15px; overflow: hidden;">
+                <div class="modal-header" style="background-color: #6D4C41; color: white;">
+                    <h5 class="modal-title">Notification Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Modal content will be dynamically inserted here -->
+                </div>
+                <div class="modal-footer justify-content-center border-0">
+                    <button type="button" class="btn btn-primary px-4" style="border-radius: 8px;" onclick="window.location.href='/dashboard'">
+                        Go to Dashboard
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mark All as Read Confirmation Modal -->
+    <div class="modal fade" id="markAllReadModal" tabindex="-1" aria-labelledby="markAllReadModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="markAllReadModalLabel">Mark All as Read</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <i class="fas fa-check-double text-success display-3 mb-3"></i>
+            <h4>Are you sure?</h4>
+            <p>Do you really want to mark all notifications as read?</p>
+          </div>
+          <div class="modal-footer justify-content-center border-0">
+            <button type="button" class="btn" data-bs-dismiss="modal" style="background: #757575; color: #f5f5f5;">Cancel</button>
+            <button type="button" class="btn" id="confirmMarkAllRead" style="background: #6D4C41; color: #fff;">Yes, mark all as read</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Food Order Success Modal -->
+    <div class="modal fade" id="orderSuccessModal" tabindex="-1" aria-labelledby="orderSuccessModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header" style="background-color: #6D4C41; color: white;">
+            <h5 class="modal-title" id="orderSuccessModalLabel"><i class="fas fa-check-circle me-2"></i>Order Successful!</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p style="font-size:1.2em;">Your food order has been placed successfully.</p>
+          </div>
+          <div class="modal-footer justify-content-center">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" style="background-color: #6D4C41; border: none;">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+    // Register service worker and subscribe to push
+    document.addEventListener('DOMContentLoaded', async function(){
+        try {
+            if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+            const reg = await navigator.serviceWorker.register('/sw.js');
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+                const vapid = await fetch('/push/vapid-public-key').then(r => r.json());
+                if (!vapid || !vapid.key) return; // Skip if no key configured
+                const convertedKey = urlBase64ToUint8Array(vapid.key);
+                sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: convertedKey });
+                await fetch('/push/subscribe', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(sub) });
+            }
+        } catch (e) {
+            console.warn('Push registration failed:', e);
+        }
+    });
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+        return outputArray;
+    }
+    </script>
+    
+    <!-- Offline Detection Script -->
+    <script>
+    // Offline/Online detection and sticky positioning under navbar
+    (function(){
+        const banner = document.getElementById('offline-notification');
+        const textEl = banner ? banner.querySelector('.notif-text') : null;
+        let onlineHideTimer = null;
+        let wasOffline = false;
+
+        function positionBanner() {
+            const header = document.querySelector('header.main-header');
+            const top = header ? (header.offsetTop + header.offsetHeight) : 0;
+            if (banner) banner.style.top = top + 'px';
+        }
+
+        function showOffline() {
+            if (!banner || !textEl) return;
+            clearTimeout(onlineHideTimer);
+            banner.style.background = '#dc3545';
+            textEl.innerHTML = '<i class="fas fa-wifi" style="margin-right:8px;"></i>No Internet Connection - Some features may be limited';
+            banner.style.display = 'block';
+            banner.style.opacity = '1';
+        }
+
+        function showOnlineBack() {
+            if (!banner || !textEl) return;
+            banner.style.background = '#28a745';
+            textEl.innerHTML = '<i class="fas fa-check" style="margin-right:8px;"></i>Internet connection restored';
+            banner.style.display = 'block';
+            banner.style.opacity = '1';
+            onlineHideTimer = setTimeout(() => { banner.style.opacity = '0'; setTimeout(()=>{ banner.style.display='none'; }, 250); }, 2000);
+        }
+
+        function updateOnlineStatus() {
+            positionBanner();
+            if (!navigator.onLine) {
+                wasOffline = true;
+                showOffline();
+            } else {
+                if (wasOffline) {
+                    showOnlineBack();
+                    wasOffline = false;
+                } else {
+                    // Ensure hidden while online if never went offline during this session
+                    if (banner) { banner.style.display = 'none'; banner.style.opacity = '0'; }
+                }
+            }
+        }
+
+        window.addEventListener('resize', positionBanner);
+        document.addEventListener('DOMContentLoaded', function(){
+            positionBanner();
+            // Initial state: only show offline if currently offline; do not show "online back" on first load
+            if (!navigator.onLine) {
+                wasOffline = true;
+                showOffline();
+            } else {
+                if (banner) { banner.style.display = 'none'; banner.style.opacity = '0'; }
+            }
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+        });
+
+        // Optional periodic connectivity ping
+        setInterval(function(){ updateOnlineStatus(); }, 30000);
+    })();
+    
+    // Check online status on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateOnlineStatus();
+        
+        // Listen for online/offline events
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+        
+        // Periodic connectivity check (every 30 seconds)
+        setInterval(function() {
+            if (navigator.onLine) {
+                // Test actual connectivity with a lightweight request
+                fetch('/api/health-check', { 
+                    method: 'HEAD',
+                    cache: 'no-cache',
+                    mode: 'no-cors'
+                }).catch(function() {
+                    // If fetch fails, we're offline
+                    updateOnlineStatus();
+                });
+            }
+        }, 30000);
+    });
+    
+    // Font Awesome fallback for offline mode
+    function loadFontAwesomeFallback() {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '{{ url_for("static", filename="css/font-awesome.min.css") }}';
+        link.onerror = function() {
+            // If local Font Awesome also fails, add basic icon fallbacks
+            const style = document.createElement('style');
+            style.textContent = `
+                .fas, .far, .fab { font-family: Arial, sans-serif !important; }
+                .fa-wifi:before { content: "📶"; }
+                .fa-bell:before { content: "🔔"; }
+                .fa-user:before { content: "👤"; }
+                .fa-bed:before { content: "🛏️"; }
+                .fa-envelope:before { content: "✉️"; }
+                .fa-sms:before { content: "📱"; }
+                .fa-map-marker-alt:before { content: "📍"; }
+                .fa-utensils:before { content: "🍽️"; }
+                .fa-shopping-cart:before { content: "🛒"; }
+                .fa-plus:before { content: "+"; }
+                .fa-minus:before { content: "-"; }
+                .fa-check:before { content: "✓"; }
+                .fa-times:before { content: "✗"; }
+                .fa-edit:before { content: "✏️"; }
+                .fa-trash:before { content: "🗑️"; }
+                .fa-eye:before { content: "👁️"; }
+                .fa-sign-out-alt:before { content: "🚪"; }
+                .fa-home:before { content: "🏠"; }
+                .fa-phone:before { content: "📞"; }
+                .fa-star:before { content: "⭐"; }
+                .fa-heart:before { content: "❤️"; }
+                .fa-search:before { content: "🔍"; }
+                .fa-calendar:before { content: "📅"; }
+                .fa-clock:before { content: "🕐"; }
+                .fa-money-bill:before { content: "💰"; }
+                .fa-credit-card:before { content: "💳"; }
+                .fa-qrcode:before { content: "📱"; }
+                .fa-external-link-alt:before { content: "🔗"; }
+                .fa-spinner:before { content: "⏳"; }
+                .fa-check-circle:before { content: "✅"; }
+                .fa-exclamation-triangle:before { content: "⚠️"; }
+                .fa-info-circle:before { content: "ℹ️"; }
+                .fa-question-circle:before { content: "❓"; }
+            `;
+            document.head.appendChild(style);
+        };
+        document.head.appendChild(link);
+    }
+    
+    // Load Font Awesome fallback after a short delay
+    setTimeout(loadFontAwesomeFallback, 1000);
+    </script>
+    
+    {% block scripts %}{% endblock %}
+
+    {# Loader overlay script: only runs if a loader element is present #}
+    <script>
+    // Logout confirmation modal
+    document.addEventListener('DOMContentLoaded', function(){
+      const logoutLinks = document.querySelectorAll('.logout-link');
+      if (logoutLinks && logoutLinks.length) {
+        logoutLinks.forEach(function(link){
+          if (link.__fhv4Bound) return;
+          link.addEventListener('click', function(e){
+            e.preventDefault();
+            const modalEl = document.getElementById('logoutConfirmModal');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+              const modal = new bootstrap.Modal(modalEl);
+              modal.show();
+            } else {
+              if (confirm('Do you want to logout?')) window.location.href = this.href;
+            }
+          });
+          link.__fhv4Bound = true;
+        });
+      }
+    });
+    </script>
+    <script>
+    // Fullscreen loader logic
+    window.addEventListener('beforeunload', function() {
+      const loader = document.getElementById('page-loader');
+      if (loader) {
+        loader.style.display = 'flex';
+        loader.style.opacity = 1;
+      }
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+      const loader = document.getElementById('page-loader');
+      if (loader) {
+        loader.style.opacity = 0;
+        setTimeout(() => { loader.style.display = 'none'; }, 400);
+      }
+    });
+    </script>
+
+    <!-- Mark All Read Modal for Navbar -->
+    <div class="modal fade" id="markAllReadModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Mark All as Read</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to mark all notifications as read?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmMarkAllAsReadNavbar()">Mark All Read</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if current_user.is_authenticated %}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const notificationDropdown = document.getElementById('notificationsDropdown');
+        const notificationList = document.getElementById('notificationList');
+        const notificationCount = document.getElementById('notificationCount');
+        const markAllReadBtn = document.getElementById('markAllRead');
+        const clearAllBtn = document.getElementById('clearAll');
+        
+        // Handle mobile notification dropdown behavior
+        if (window.innerWidth <= 768) {
+            notificationDropdown.addEventListener('click', function(e) {
+                e.preventDefault();
+                const dropdown = document.querySelector('.notification-dropdown');
+                const isOpen = dropdown.classList.contains('show');
+                
+                if (isOpen) {
+                    dropdown.classList.remove('show');
+                    document.body.classList.remove('notification-dropdown-open');
+                } else {
+                    dropdown.classList.add('show');
+                    document.body.classList.add('notification-dropdown-open');
+                    loadNotifications();
+                }
+            });
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!notificationDropdown.contains(e.target) && !document.querySelector('.notification-dropdown').contains(e.target)) {
+                    document.querySelector('.notification-dropdown').classList.remove('show');
+                    document.body.classList.remove('notification-dropdown-open');
+                }
+            });
+        }
+        
+        // Function to update notification count
+        function updateNotificationCount(decrement = 0) {
+            let currentCount = parseInt(notificationCount.textContent) || 0;
+            currentCount = Math.max(0, currentCount - decrement);
+            
+            if (currentCount > 0) {
+                notificationCount.textContent = currentCount;
+                notificationCount.style.display = 'inline';
+            } else {
+                notificationCount.style.display = 'none';
+            }
+        }
+
+        // Function to mark a notification as read
+        function markNotificationAsRead(notificationId) {
+            fetch(`/notifications/${notificationId}/read`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateNotificationCount(1);
+                    const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
+                    if (notificationItem) {
+                        notificationItem.classList.remove('unread');
+                    }
+                }
+            })
+            .catch(error => console.error('Error marking notification as read:', error));
+        }
+
+        // Function to show notification details
+        function showNotificationDetails(notification) {
+            let status = 'pending';
+            if (notification.message.toLowerCase().includes('approved')) {
+                status = 'approved';
+            } else if (notification.message.toLowerCase().includes('rejected')) {
+                status = 'rejected';
+            } else if (notification.message.toLowerCase().includes('cancelled')) {
+                status = 'cancelled';
+            }
+
+            // Capitalize first letter only
+            function capitalizeFirstLetter(string) {
+                return string.charAt(0).toUpperCase() + string.slice(1);
+            }
+            const displayStatus = capitalizeFirstLetter(status);
+
+            const date = new Date(notification.created_at);
+            const formattedDate = date.toLocaleString('en-US', { 
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+
+            const roomMatch = notification.message.match(/Room (\w+)/);
+            const roomNumber = roomMatch ? roomMatch[1] : '';
+
+            const modalContent = `
+                <div class="notification-content" style="border-radius: 12px; border: 1px solid #eee; padding: 15px;">
+                    <div class="room-info mb-3">
+                        <h6 class="mb-2" style="color: #6D4C41;">Room Details</h6>
+                        <div class="room-number" style="font-weight: 700;">${roomNumber ? `Room ${roomNumber}` : ''}</div>
+                    </div>
+                    <div class="info-list" style="border-radius: 12px; background: #f8f9fa; padding: 15px;">
+                        <div class="status-container mb-3">
+                            <span class="status-label" style="font-weight: 600;">Status:</span>
+                            <span class="status-badge status-${status}">${displayStatus}</span>
+                        </div>
+                        <div class="message-container mb-3">
+                            <span class="message-label" style="font-weight: 600;">Message:</span>
+                            <p class="message-text mt-1" style="margin-bottom: 0;">${notification.message}</p>
+                        </div>
+                        <div class="date-container">
+                            <span class="date-label" style="font-weight: 600;">Date:</span>
+                            <span class="date-text" style="margin-left: 8px;">${formattedDate}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.querySelector('#notificationModal .modal-body').innerHTML = modalContent;
+            const modal = new bootstrap.Modal(document.getElementById('notificationModal'));
+            modal.show();
+        }
+
+        // Function to load notifications
+        function loadNotifications() {
+            fetch('/notifications')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.unread_count > 0) {
+                        notificationCount.textContent = data.unread_count;
+                        notificationCount.style.display = 'inline';
+                    } else {
+                        notificationCount.style.display = 'none';
+                    }
+                    
+                    notificationList.innerHTML = '';
+                    const notificationFooter = document.getElementById('notificationFooter');
+                    
+                    if (data.notifications.length === 0) {
+                        notificationList.innerHTML = `
+                            <div class="notification-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p>No notifications</p>
+                            </div>`;
+                        notificationFooter.style.display = 'none';
+                        return;
+                    }
+                    
+                    // Show only first 5 notifications
+                    const displayNotifications = data.notifications.slice(0, 5);
+                    const hasMoreNotifications = data.notifications.length > 5;
+                    
+                    displayNotifications.forEach(notification => {
+                        const notificationItem = document.createElement('div');
+                        notificationItem.className = `notification-item ${notification.is_read ? '' : 'unread'}`;
+                        notificationItem.setAttribute('data-notification-id', notification.id);
+                        notificationItem.innerHTML = `
+                            <div class="notification-icon">
+                                <i class="fas ${getNotificationIcon(notification.type)}"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-title">${notification.title}</div>
+                                <div class="notification-message">${notification.message}</div>
+                                <div class="notification-time">${formatTimestamp(notification.created_at)}</div>
+                            </div>
+                        `;
+                        
+                        notificationItem.addEventListener('click', () => {
+                            // Check if mobile device
+                            if (window.innerWidth <= 768) {
+                                // On mobile, navigate to notifications page
+                                window.location.href = '/notifications-page';
+                            } else {
+                                // On desktop, show modal
+                            showNotificationDetails(notification);
+                            }
+                            
+                            if (!notification.is_read) {
+                                markNotificationAsRead(notification.id);
+                            }
+                        });
+                        
+                        notificationList.appendChild(notificationItem);
+                    });
+                    
+                    // Show/hide footer based on whether there are more notifications
+                    if (hasMoreNotifications) {
+                        notificationFooter.style.display = 'block';
+                    } else {
+                        notificationFooter.style.display = 'none';
+                    }
+                })
+                .catch(error => console.error('Error loading notifications:', error));
+        }
+
+        function getNotificationIcon(type) {
+            switch (type) {
+                case 'booking':
+                    return 'fa-calendar-check';
+                case 'system':
+                    return 'fa-info-circle';
+                case 'alert':
+                    return 'fa-exclamation-circle';
+                default:
+                    return 'fa-bell';
+            }
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60 * 1000) return 'Just now';
+            if (diff < 60 * 60 * 1000) return `${Math.floor(diff / (60 * 1000))}m ago`;
+            if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / (60 * 60 * 1000))}h ago`;
+            if (diff < 7 * 24 * 60 * 60 * 1000) return `${Math.floor(diff / (24 * 60 * 60 * 1000))}d ago`;
+            
+            return date.toLocaleDateString();
+        }
+        
+        // Always close the modal after marking all as read
+        document.getElementById('confirmMarkAllRead').addEventListener('click', function() {
+            fetch('/notifications/read-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Always reset the notification count and unread classes
+                notificationCount.style.display = 'none';
+                notificationCount.textContent = '0';
+                document.querySelectorAll('.notification-item.unread').forEach(item => item.classList.remove('unread'));
+                // Always close the modal
+                var modal = bootstrap.Modal.getInstance(document.getElementById('markAllReadModal'));
+                if (modal) modal.hide();
+            })
+            .catch(error => {
+                // Always reset and close the modal even on error
+                notificationCount.style.display = 'none';
+                notificationCount.textContent = '0';
+                document.querySelectorAll('.notification-item.unread').forEach(item => item.classList.remove('unread'));
+                var modal = bootstrap.Modal.getInstance(document.getElementById('markAllReadModal'));
+                if (modal) modal.hide();
+                console.error('Error marking all notifications as read:', error);
+            });
+        });
+
+        // Clear all notifications
+        clearAllBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) {
+                fetch('/notifications/clear-all', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        loadNotifications();
+                    }
+                })
+                .catch(error => console.error('Error clearing notifications:', error));
+            }
+        });
+        
+        // Load notifications when dropdown is opened
+        notificationDropdown.addEventListener('show.bs.dropdown', loadNotifications);
+        
+        // Load notifications periodically (every 30 seconds)
+        setInterval(loadNotifications, 30000);
+        
+        // Initial load
+        loadNotifications();
+        
+        // Add event listener for Orders menu item
+        const viewOrdersMenuItem = document.getElementById('viewOrdersMenuItem');
+        if (viewOrdersMenuItem) {
+            viewOrdersMenuItem.addEventListener('click', function(e) {
+                e.preventDefault();
+                // Show the food menu modal
+                if (typeof showFoodMenuModal === 'function') {
+                    showFoodMenuModal();
+                } else {
+                    // Fallback: try to show modal directly
+                    const foodMenuModal = document.getElementById('foodMenuModal');
+                    if (foodMenuModal && typeof bootstrap !== 'undefined') {
+                        const modal = new bootstrap.Modal(foodMenuModal);
+                        modal.show();
+                    }
+                }
+            });
+        }
+
+        // Mobile My Account submenu toggle (Logout inside)
+        const mobileMyAccountToggle = document.getElementById('mobileMyAccountToggle');
+        const mobileLogoutLink = document.getElementById('mobileLogoutLink');
+        const mobileMyAccountSeparator = document.getElementById('mobileMyAccountSeparator');
+        if (mobileMyAccountToggle && !mobileMyAccountToggle.__fhv3Bound) {
+            mobileMyAccountToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const willShow = mobileLogoutLink && mobileLogoutLink.style.display !== 'inline-flex' && mobileLogoutLink.style.display !== 'inline' && mobileLogoutLink.style.display !== 'block';
+                if (mobileLogoutLink) mobileLogoutLink.style.display = willShow ? 'inline-flex' : 'none';
+                if (mobileMyAccountSeparator) mobileMyAccountSeparator.style.display = willShow ? 'inline' : 'none';
+            });
+            document.addEventListener('click', function(e) {
+                const row = document.getElementById('mobileMyAccountRow');
+                if (row && !row.contains(e.target)) {
+                    if (mobileLogoutLink) mobileLogoutLink.style.display = 'none';
+                    if (mobileMyAccountSeparator) mobileMyAccountSeparator.style.display = 'none';
+                }
+            });
+            mobileMyAccountToggle.__fhv3Bound = true;
+        }
+    });
+
+    // Function for navbar mark all as read
+    function confirmMarkAllAsReadNavbar() {
+        // Close the modal first
+        const modal = bootstrap.Modal.getInstance(document.getElementById('markAllReadModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Then call the actual function
+        markAllAsReadNavbar();
+    }
+
+    function markAllAsReadNavbar() {
+        fetch('/notifications/read-all', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update all notification elements in dropdown
+                const unreadNotifications = document.querySelectorAll('.notification-item.unread');
+                unreadNotifications.forEach(element => {
+                    element.classList.remove('unread');
+                });
+                
+                // Update notification count
+                const notificationCount = document.getElementById('notificationCount');
+                if (notificationCount) {
+                    notificationCount.style.display = 'none';
+                }
+                
+                // Show success toast
+                if (typeof window.showToast === 'function') {
+                    window.showToast('All notifications marked as read', 'success');
+                } else {
+                    showNavbarToast('All notifications marked as read', 'success');
+                }
+            } else {
+                if (typeof window.showToast === 'function') {
+                    window.showToast('Failed to mark notifications as read', 'error');
+                } else {
+                    showNavbarToast('Failed to mark notifications as read', 'error');
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error marking all notifications as read:', error);
+            if (typeof window.showToast === 'function') {
+                window.showToast('Failed to mark notifications as read', 'error');
+            } else {
+                showNavbarToast('Failed to mark notifications as read', 'error');
+            }
+        });
+    }
+
+    // Lightweight toast for navbar actions
+    function showNavbarToast(message, type = 'info') {
+        const existing = document.getElementById('navbar-toast');
+        if (existing) existing.remove();
+        const toast = document.createElement('div');
+        toast.id = 'navbar-toast';
+        const bg = type === 'success' ? '#4caf50' : (type === 'error' ? '#f44336' : '#2196f3');
+        toast.style.cssText = 'position:fixed; top:16px; right:16px; z-index:99999; color:#fff; background:'+bg+'; padding:10px 14px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.25); font-weight:600; font-size:14px;';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.transition = 'opacity 300ms ease';
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 320);
+        }, 2000);
+    }
+
+    // Provide a global showToast if not already defined (shared with notifications page UX)
+    if (typeof window.showToast !== 'function') {
+        window.showToast = function(message, type = 'info') {
+            const existing = document.getElementById('global-toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.id = 'global-toast';
+            const bg = type === 'success' ? '#4caf50' : (type === 'error' ? '#f44336' : '#2196f3');
+            toast.style.cssText = 'position:fixed; top:20px; right:20px; z-index:99999; color:#fff; background:'+bg+'; padding:12px 16px; border-radius:10px; box-shadow:0 6px 16px rgba(0,0,0,0.3); font-weight:600; font-size:14px;';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.transition = 'opacity 300ms ease';
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 320);
+            }, 2200);
+        };
+    }
+    </script>
+    {% endif %}
+
+<style>
+/* Make notification icons smaller */
+.d-md-none .fas.fa-bell,
+#notificationsDropdown .fas.fa-bell {
+    font-size: 1.2rem !important;
+    padding-top: 15px;
+    padding-bottom: 15px;
+}
+
+/* Ensure notification badge is properly positioned */
+#notificationsDropdown {
+    position: relative;
+}
+
+.notification-badge {
+    font-size: 0.7rem !important;
+    min-width: 1.2rem !important;
+    height: 1.2rem !important;
+    line-height: 1.2rem !important;
+}
+</style>
+
+<script>window.FOOD_SERVICE_IP = "{{ food_service_ip if food_service_ip else '192.168.1.12' }}";</script>
+
+<!-- Food Menu Modal - Available on all pages -->
+    <div id="foodMenuModal" class="modal fade" tabindex="-1" aria-labelledby="foodMenuModalLabel" aria-hidden="true">
+      <div class="modal-dialog" style="max-width:1200px;width:98%;">
+        <div class="modal-content">
+          <div class="modal-header" id="foodMenuModalHeader">
+            <h5 class="modal-title" id="foodMenuModalLabel">Food Menu</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body" id="food-menu-content">
+            <!-- Menu will be loaded here -->
+            <div class="text-center text-muted">Loading menu...</div>
+          </div>
+          <div id="ratingsModalContainer" style="display:none;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order Success Modal - Available on all pages -->
+    <div class="modal fade" id="orderSuccessModal" tabindex="-1" aria-labelledby="orderSuccessModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header" style="background-color: #6D4C41; color: white;">
+            <h5 class="modal-title" id="orderSuccessModalLabel"><i class="fas fa-check-circle me-2"></i>Order Successful!</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <i class="fas fa-check-circle text-success" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <h4>Order Placed Successfully!</h4>
+            <p>Your food order has been submitted. You will receive a confirmation shortly.</p>
+          </div>
+          <div class="modal-footer justify-content-center border-0">
+            <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal" style="border-radius: 8px;">OK</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GCash QR Modal - Available on all pages -->
+    <div class="modal fade" id="gcashQrModal" tabindex="-1" aria-labelledby="gcashQrModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="gcashQrModalLabel">GCash Payment</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p>Scan this QR code to pay with GCash:</p>
+            <img src="http://{{ food_service_ip }}/online-food-ordering/assets/images/gcash-qr-code.png" 
+                alt="GCash QR Code" 
+                style="max-width: 100%; height: auto;"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+            <p style="display:none; color:#666;">QR code image not available. Please contact support for payment instructions.</p>
+          </div>
+          <div class="modal-footer justify-content-center border-0">
+            <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+</body>
+</html> 
