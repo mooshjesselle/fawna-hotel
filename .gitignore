@@ -1,0 +1,22 @@
+# Environment and config files
+.env
+
+# Python virtual environments
+venv/
+.venv/
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+
+# Databases
+*.db
+
+# Editor and system files
+.vscode/
+.idea/
+.DS_Store
+
+# Flask instance/logs
+instance/
+*.log
