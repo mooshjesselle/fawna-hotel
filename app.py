@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_wtf.csrf import CSRFProtect
 from utils.extensions import db, login_manager, mail
-from utils.database.config import Config
+from config import Config
 from models import User  # Import models needed for init_db
 import os
 from flask_migrate import Migrate
@@ -16,8 +16,17 @@ def create_app():
     app.config['FOOD_SERVICE_IPV4'] = os.getenv('FOOD_SERVICE_IPV4')  # <-- add this
     
     # Configure session - using Flask's built-in session
-    app.secret_key = 'your_secret_key_here'  # Replace with a strong secret key
+    app.secret_key = app.config.get('SECRET_KEY', 'your_secret_key_here')
     app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
+    
+    # Production settings
+    if app.config.get('DATABASE_URL'):
+        # Production settings for Render
+        app.config['DEBUG'] = False
+        app.config['TESTING'] = False
+    else:
+        # Development settings
+        app.config['DEBUG'] = True
     
     # Configure upload folder
     app.config['UPLOAD_FOLDER'] = os.path.join(app.static_folder, 'room_images')
@@ -43,4 +52,6 @@ app = create_app()
 from blueprints.routes import *
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Only run with debug=True in development
+    debug_mode = not app.config.get('DATABASE_URL', False)
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=debug_mode)
