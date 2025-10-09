@@ -216,34 +216,28 @@ def send_verification_email():
             'attempts': 0
         }
         
-        # Send verification email - Skip email sending on production due to network restrictions
-        import os
-        if os.getenv('DATABASE_URL'):  # Production environment
-            print(f"DEBUG: Production environment - skipping email sending for {email}")
-            print(f"DEBUG: Verification code would be: {verification_code}")
-            # In production, we'll skip email verification for now
-            # The verification code is stored in session for testing
-        else:
-            # Development environment - try to send email
-            try:
-                msg = Message('Email Verification - FAWNA Hotel',
-                             recipients=[email])
-                msg.html = render_template('auth/email/verification_code.html',
-                                         code=verification_code)
-                print(f"DEBUG: Attempting to send email to {email}")
-                
-                # Add timeout to prevent worker timeout
-                import socket
-                socket.setdefaulttimeout(10)  # 10 second timeout
-                
-                mail.send(msg)
-                print(f"DEBUG: Email sent successfully to {email}")
-            except Exception as email_error:
-                print(f"DEBUG: Email sending failed: {str(email_error)}")
-                return jsonify({
-                    'success': False,
-                    'message': 'Email service temporarily unavailable. Please try again later.'
-                }), 503
+        # Send verification email
+        try:
+            msg = Message('Email Verification - FAWNA Hotel',
+                         recipients=[email])
+            msg.html = render_template('auth/email/verification_code.html',
+                                     code=verification_code)
+            print(f"DEBUG: Attempting to send email to {email}")
+            
+            # Add timeout to prevent worker timeout
+            import socket
+            socket.setdefaulttimeout(30)  # 30 second timeout for SendGrid
+            
+            mail.send(msg)
+            print(f"DEBUG: Email sent successfully to {email}")
+        except Exception as email_error:
+            print(f"DEBUG: Email sending failed: {str(email_error)}")
+            # Return the verification code in the response for manual entry
+            return jsonify({
+                'success': True,
+                'message': f'Email service unavailable. Your verification code is: {verification_code}',
+                'verification_code': verification_code
+            })
         
         return jsonify({
             'success': True,
