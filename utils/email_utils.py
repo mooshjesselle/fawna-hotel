@@ -54,7 +54,12 @@ def send_email_via_sendgrid(to_email, subject, html_body):
                 {"type": "text/plain", "value": "This email contains HTML content. If you see this, please enable HTML emails."},
                 {"type": "text/html", "value": html_body}
             ],
-            "mail_settings": {"sandbox_mode": {"enable": False}}
+            "mail_settings": {"sandbox_mode": {"enable": False}},
+            "tracking_settings": {
+                "click_tracking": {"enable": False, "enable_text": False},
+                "open_tracking": {"enable": False}
+            },
+            "categories": ["transactional", "otp"]
         }
         headers = {
             "Authorization": f"Bearer {api_key}",
