@@ -222,13 +222,20 @@ def send_verification_email():
         html_body = render_template('auth/email/verification_code.html',
                                     code=verification_code)
 
-        sent = False
-        try:
-            sent = send_email_via_sendgrid(email, subject, html_body)
-        except Exception as _e:
-            sent = False
-
-        if not sent:
+        # If SendGrid API key is configured, do NOT fall back to SMTP (Render may block SMTP)
+        use_sendgrid = bool(current_app.config.get('SENDGRID_API_KEY'))
+        if use_sendgrid:
+            success = False
+            try:
+                success = send_email_via_sendgrid(email, subject, html_body)
+            except Exception as _e:
+                success = False
+            if not success:
+                return jsonify({
+                    'success': False,
+                    'message': 'Failed to send verification code via SendGrid.'
+                }), 502
+        else:
             msg = Message(subject, recipients=[email])
             msg.html = html_body
             mail.send(msg)
