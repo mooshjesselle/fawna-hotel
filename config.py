@@ -9,37 +9,9 @@ class Config:
     MAIL_SERVER = 'smtp.gmail.com'
     MAIL_PORT = 587
     MAIL_USE_TLS = True
-    MAIL_USE_SSL = False
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_USERNAME')
-    # Add timeout settings to prevent hanging
-    MAIL_TIMEOUT = 30  # 30 seconds timeout
-    MAIL_SUPPRESS_SEND = False
-    
-    # Alternative email configuration for better Render compatibility
-    # Check if we should use SendGrid instead of Gmail
-    SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
-    SENDGRID_FROM_EMAIL = os.getenv('SENDGRID_FROM_EMAIL')
-    
-    if SENDGRID_API_KEY and SENDGRID_FROM_EMAIL:
-        # Use SendGrid if credentials are available
-        MAIL_SERVER = 'smtp.sendgrid.net'
-        MAIL_PORT = 587
-        MAIL_USE_TLS = True
-        MAIL_USERNAME = 'apikey'  # SendGrid uses 'apikey' as username
-        MAIL_PASSWORD = SENDGRID_API_KEY
-        MAIL_DEFAULT_SENDER = SENDGRID_FROM_EMAIL
-        print("📧 Using SendGrid for email delivery")
-    elif not MAIL_USERNAME or not MAIL_PASSWORD:
-        # Fallback to a more reliable email service if Gmail credentials are not set
-        MAIL_SERVER = 'smtp.sendgrid.net'
-        MAIL_PORT = 587
-        MAIL_USE_TLS = True
-        MAIL_USERNAME = 'apikey'  # SendGrid uses 'apikey' as username
-        MAIL_PASSWORD = os.getenv('SENDGRID_API_KEY', '')
-        MAIL_DEFAULT_SENDER = os.getenv('SENDGRID_FROM_EMAIL', 'noreply@fawnahotel.com')
-        print("📧 Using SendGrid fallback for email delivery")
 
     # Flask Configuration
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
