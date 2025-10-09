@@ -136,15 +136,24 @@ def send_email_async_with_context(mail, msg, app):
                         if success:
                             print("✅ Email sent successfully via fallback method")
                         else:
-                            print("❌ All SMTP methods failed, trying simple fallback...")
-                            # Try simple email service as final fallback
-                            from utils.simple_email_service import send_email_simple_fallback
-                            success = send_email_simple_fallback(
+                            print("❌ All SMTP methods failed, trying SendGrid API...")
+                            # Try SendGrid API as fallback
+                            from utils.simple_email_service import send_email_via_sendgrid_api
+                            success = send_email_via_sendgrid_api(
                                 ', '.join(msg.recipients), 
                                 msg.subject, 
                                 str(msg.html) if hasattr(msg, 'html') and msg.html else 'Email content',
                                 app
                             )
+                            if not success:
+                                print("❌ SendGrid API failed, using simple fallback...")
+                                from utils.simple_email_service import send_email_simple_fallback
+                                success = send_email_simple_fallback(
+                                    ', '.join(msg.recipients), 
+                                    msg.subject, 
+                                    str(msg.html) if hasattr(msg, 'html') and msg.html else 'Email content',
+                                    app
+                                )
                             
                 except Exception as e:
                     print(f"Background email sending failed: {e}")
@@ -154,16 +163,25 @@ def send_email_async_with_context(mail, msg, app):
                         if success:
                             print("✅ Email sent successfully via final fallback")
                         else:
-                            print("❌ All SMTP methods failed, using simple fallback...")
-                            from utils.simple_email_service import send_email_simple_fallback
-                            success = send_email_simple_fallback(
+                            print("❌ All SMTP methods failed, trying SendGrid API...")
+                            from utils.simple_email_service import send_email_via_sendgrid_api
+                            success = send_email_via_sendgrid_api(
                                 ', '.join(msg.recipients), 
                                 msg.subject, 
                                 str(msg.html) if hasattr(msg, 'html') and msg.html else 'Email content',
                                 app
                             )
+                            if not success:
+                                print("❌ SendGrid API failed, using simple fallback...")
+                                from utils.simple_email_service import send_email_simple_fallback
+                                success = send_email_simple_fallback(
+                                    ', '.join(msg.recipients), 
+                                    msg.subject, 
+                                    str(msg.html) if hasattr(msg, 'html') and msg.html else 'Email content',
+                                    app
+                                )
                             if success:
-                                print("✅ Email sent via simple fallback")
+                                print("✅ Email sent via final fallback")
                             else:
                                 print("❌ All email methods failed in background thread")
         except Exception as e:
