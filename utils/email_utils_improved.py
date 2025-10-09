@@ -110,6 +110,7 @@ def send_email_with_flask_mail(mail, msg):
 def send_email_async_with_context(mail, msg, app):
     """Send email asynchronously with proper application context and immediate fallback"""
     def send_in_background():
+        print("🔄 Background email thread started")
         with app.app_context():
             success = False
             try:
@@ -166,6 +167,7 @@ def send_email_sync_with_fallback(mail, msg, app):
                 return True
             except Exception as e:
                 print(f"Flask-Mail failed quickly: {e}")
+                print("🚀 Starting background email thread...")
                 # Start background thread for fallback
                 send_email_async_with_context(mail, msg, app)
                 return True  # Return success immediately, let background handle it
@@ -174,6 +176,7 @@ def send_email_sync_with_fallback(mail, msg, app):
                 
     except Exception as e:
         print(f"Sync email sending failed: {e}")
+        print("🚀 Starting background email thread...")
         # Start background thread for fallback
         send_email_async_with_context(mail, msg, app)
         return True  # Return success immediately
@@ -182,7 +185,9 @@ def try_direct_smtp_sending(msg, app):
     """Try direct SMTP sending with multiple providers"""
     try:
         with app.app_context():
+            print("🔍 Trying direct SMTP providers...")
             # Try Gmail first
+            print("📧 Attempting Gmail SMTP (port 587)...")
             if try_smtp_provider(msg, app, 'smtp.gmail.com', 587):
                 return True
             
@@ -194,6 +199,7 @@ def try_direct_smtp_sending(msg, app):
             ]
             
             for server, port in providers:
+                print(f"📧 Attempting {server}:{port}...")
                 if try_smtp_provider(msg, app, server, port):
                     return True
                     
