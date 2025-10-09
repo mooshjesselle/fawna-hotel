@@ -223,11 +223,21 @@ def send_verification_email():
             msg.html = render_template('auth/email/verification_code.html',
                                      code=verification_code)
             print(f"DEBUG: Attempting to send email to {email}")
+            
+            # Add timeout to prevent worker timeout
+            import socket
+            socket.setdefaulttimeout(10)  # 10 second timeout
+            
             mail.send(msg)
             print(f"DEBUG: Email sent successfully to {email}")
         except Exception as email_error:
             print(f"DEBUG: Email sending failed: {str(email_error)}")
-            raise email_error
+            # Don't raise the error, just log it and continue
+            # This prevents the 500 error and worker timeout
+            return jsonify({
+                'success': False,
+                'message': 'Email service temporarily unavailable. Please try again later.'
+            }), 503
         
         return jsonify({
             'success': True,
