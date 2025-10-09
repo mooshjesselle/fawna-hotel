@@ -50,13 +50,25 @@ def send_email_via_sendgrid(to_email, subject, html_body):
             "personalizations": [{"to": [{"email": to_email}]}],
             "from": {"email": from_email},
             "subject": subject,
-            "content": [{"type": "text/html", "value": html_body}]
+            "content": [
+                {"type": "text/plain", "value": "This email contains HTML content. If you see this, please enable HTML emails."},
+                {"type": "text/html", "value": html_body}
+            ],
+            "mail_settings": {"sandbox_mode": {"enable": False}}
         }
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
         }
         resp = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers, timeout=10)
+        # Log response for debugging in Render logs
+        try:
+            message_id = resp.headers.get('X-Message-Id') or resp.headers.get('x-message-id')
+            print(f"SendGrid response status={resp.status_code}, message_id={message_id}")
+            if resp.status_code >= 400:
+                print(f"SendGrid error body: {resp.text}")
+        except Exception as _log_err:
+            pass
         return 200 <= resp.status_code < 300
     except Exception as e:
         print(f"SendGrid error: {e}")
