@@ -12,6 +12,7 @@ from functools import wraps
 import time
 from flask_mail import Message
 from utils.extensions import mail
+from utils.email_utils import send_email_via_sendgrid
 import re
 import random
 import string
@@ -216,12 +217,21 @@ def send_verification_email():
             'attempts': 0
         }
         
-        # Send verification email
-        msg = Message('Email Verification - FAWNA Hotel',
-                     recipients=[email])
-        msg.html = render_template('auth/email/verification_code.html',
-                                 code=verification_code)
-        mail.send(msg)
+        # Send verification email via SendGrid first; fallback to Flask-Mail if not configured
+        subject = 'Email Verification - FAWNA Hotel'
+        html_body = render_template('auth/email/verification_code.html',
+                                    code=verification_code)
+
+        sent = False
+        try:
+            sent = send_email_via_sendgrid(email, subject, html_body)
+        except Exception as _e:
+            sent = False
+
+        if not sent:
+            msg = Message(subject, recipients=[email])
+            msg.html = html_body
+            mail.send(msg)
         
         return jsonify({
             'success': True,

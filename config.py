@@ -12,6 +12,9 @@ class Config:
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_USERNAME')
+    # SendGrid HTTP API (preferred in Render to avoid SMTP blocks)
+    SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY', '')
+    SENDGRID_FROM_EMAIL = os.getenv('SENDGRID_FROM_EMAIL', MAIL_DEFAULT_SENDER)
 
     # Flask Configuration
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')

@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from flask import current_app, session
 from datetime import datetime, timedelta
+import requests
 
 def generate_otp():
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
@@ -37,6 +38,28 @@ def send_otp_email(email, otp):
         return True
     except Exception as e:
         print(f"Error sending email: {e}")
+        return False
+
+def send_email_via_sendgrid(to_email, subject, html_body):
+    api_key = current_app.config.get('SENDGRID_API_KEY', '')
+    from_email = current_app.config.get('SENDGRID_FROM_EMAIL', current_app.config.get('MAIL_DEFAULT_SENDER'))
+    if not api_key or not from_email:
+        return False
+    try:
+        payload = {
+            "personalizations": [{"to": [{"email": to_email}]}],
+            "from": {"email": from_email},
+            "subject": subject,
+            "content": [{"type": "text/html", "value": html_body}]
+        }
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        resp = requests.post("https://api.sendgrid.com/v3/mail/send", json=payload, headers=headers, timeout=10)
+        return 200 <= resp.status_code < 300
+    except Exception as e:
+        print(f"SendGrid error: {e}")
         return False
 
 def store_otp(email, otp):
