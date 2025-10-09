@@ -216,20 +216,22 @@ def send_verification_email():
             'attempts': 0
         }
         
-        # Send verification email
+        # Send verification email using the same method as forgot password
         try:
-            msg = Message('Email Verification - FAWNA Hotel',
-                         recipients=[email])
-            msg.html = render_template('auth/email/verification_code.html',
-                                     code=verification_code)
+            from utils.email_utils import send_otp_email
             print(f"DEBUG: Attempting to send email to {email}")
             
-            # Add timeout to prevent worker timeout
-            import socket
-            socket.setdefaulttimeout(30)  # 30 second timeout for SendGrid
-            
-            mail.send(msg)
-            print(f"DEBUG: Email sent successfully to {email}")
+            # Use the same email utility that works for forgot password
+            if send_otp_email(email, verification_code):
+                print(f"DEBUG: Email sent successfully to {email}")
+            else:
+                print(f"DEBUG: Email sending failed - using fallback")
+                # Return the verification code in the response for manual entry
+                return jsonify({
+                    'success': True,
+                    'message': f'Email service unavailable. Your verification code is: {verification_code}',
+                    'verification_code': verification_code
+                })
         except Exception as email_error:
             print(f"DEBUG: Email sending failed: {str(email_error)}")
             # Return the verification code in the response for manual entry
