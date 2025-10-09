@@ -111,46 +111,80 @@ def send_email_async_with_context(mail, msg, app):
     """Send email asynchronously with proper application context and immediate fallback"""
     def send_in_background():
         print("🔄 Background email thread started")
-        with app.app_context():
-            success = False
-            try:
-                # Try Flask-Mail first with shorter timeout
-                import socket
-                original_timeout = socket.getdefaulttimeout()
-                socket.setdefaulttimeout(10)  # Reduced to 10 seconds
-                
+        try:
+            with app.app_context():
+                success = False
                 try:
-                    mail.send(msg)
-                    print("Email sent successfully via Flask-Mail")
-                    success = True
-                except Exception as e:
-                    print(f"Flask-Mail failed: {e}")
-                finally:
-                    socket.setdefaulttimeout(original_timeout)
-                
-                # If Flask-Mail failed, try direct SMTP immediately
-                if not success:
-                    print("Trying direct SMTP fallback...")
-                    success = try_direct_smtp_sending(msg, app)
-                    if success:
-                        print("✅ Email sent successfully via fallback method")
-                    else:
-                        print("❌ All email methods failed")
+                    # Try Flask-Mail first with shorter timeout
+                    import socket
+                    original_timeout = socket.getdefaulttimeout()
+                    socket.setdefaulttimeout(10)  # Reduced to 10 seconds
                     
-            except Exception as e:
-                print(f"Background email sending failed: {e}")
-                # Final fallback
-                if not success:
-                    success = try_direct_smtp_sending(msg, app)
-                    if success:
-                        print("✅ Email sent successfully via final fallback")
-                    else:
-                        print("❌ All email methods failed in background thread")
+                    try:
+                        mail.send(msg)
+                        print("✅ Email sent successfully via Flask-Mail")
+                        success = True
+                    except Exception as e:
+                        print(f"Flask-Mail failed: {e}")
+                    finally:
+                        socket.setdefaulttimeout(original_timeout)
+                    
+                    # If Flask-Mail failed, try direct SMTP immediately
+                    if not success:
+                        print("Trying direct SMTP fallback...")
+                        success = try_direct_smtp_sending(msg, app)
+                        if success:
+                            print("✅ Email sent successfully via fallback method")
+                        else:
+                            print("❌ All SMTP methods failed, trying simple fallback...")
+                            # Try simple email service as final fallback
+                            from utils.simple_email_service import send_email_simple_fallback
+                            success = send_email_simple_fallback(
+                                ', '.join(msg.recipients), 
+                                msg.subject, 
+                                str(msg.html) if hasattr(msg, 'html') and msg.html else 'Email content',
+                                app
+                            )
+                            
+                except Exception as e:
+                    print(f"Background email sending failed: {e}")
+                    # Final fallback
+                    if not success:
+                        success = try_direct_smtp_sending(msg, app)
+                        if success:
+                            print("✅ Email sent successfully via final fallback")
+                        else:
+                            print("❌ All SMTP methods failed, using simple fallback...")
+                            from utils.simple_email_service import send_email_simple_fallback
+                            success = send_email_simple_fallback(
+                                ', '.join(msg.recipients), 
+                                msg.subject, 
+                                str(msg.html) if hasattr(msg, 'html') and msg.html else 'Email content',
+                                app
+                            )
+                            if success:
+                                print("✅ Email sent via simple fallback")
+                            else:
+                                print("❌ All email methods failed in background thread")
+        except Exception as e:
+            print(f"❌ Background thread crashed: {e}")
     
     thread = threading.Thread(target=send_in_background)
     thread.daemon = True
     thread.start()
     print(f"🧵 Background thread started with ID: {thread.ident}")
+    
+    # Add a timeout to prevent hanging
+    def timeout_handler():
+        import time
+        time.sleep(30)  # Wait 30 seconds
+        if thread.is_alive():
+            print("⏰ Background email thread timed out after 30 seconds")
+    
+    timeout_thread = threading.Thread(target=timeout_handler)
+    timeout_thread.daemon = True
+    timeout_thread.start()
+    
     return True
 
 def send_email_sync_with_fallback(mail, msg, app):
