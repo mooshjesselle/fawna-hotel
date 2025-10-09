@@ -4,8 +4,8 @@
 
 1. **DATABASE_URL** - This is automatically provided by Render when you add a PostgreSQL database
 2. **FLASK_SECRET_KEY** - Set a strong secret key for your Flask app
-3. **MAIL_USERNAME** or **SMTP_USERNAME** - Your Gmail address for sending emails
-4. **MAIL_PASSWORD** or **SMTP_PASSWORD** - Your Gmail app password
+3. **MAIL_USERNAME** - Your Gmail address for sending emails
+4. **MAIL_PASSWORD** - Your Gmail app password
 5. **FOOD_SERVICE_IPV4** - IP address for food service (if applicable)
 6. **VAPID_PUBLIC_KEY** - For web push notifications (optional)
 7. **VAPID_PRIVATE_KEY** - For web push notifications (optional)
