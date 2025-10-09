@@ -216,12 +216,15 @@ def send_verification_email():
             'attempts': 0
         }
         
-        # Send verification email
+        # Send verification email with timeout handling
         msg = Message('Email Verification - FAWNA Hotel',
                      recipients=[email])
         msg.html = render_template('auth/email/verification_code.html',
                                  code=verification_code)
-        mail.send(msg)
+        
+        # Use async email sending to prevent timeouts
+        from utils.email_utils import send_email_async
+        send_email_async(mail, msg)
         
         return jsonify({
             'success': True,
@@ -3074,7 +3077,10 @@ def send_verification_email(email, code):
             sender=app.config['MAIL_DEFAULT_SENDER']
         )
         msg.html = render_template('auth/email/reset_password_code.html', code=code)
-        mail.send(msg)
+        
+        # Use async email sending to prevent timeouts
+        from utils.email_utils import send_email_async
+        send_email_async(mail, msg)
         return True
     except Exception as e:
         print(f"Error sending email: {str(e)}")
@@ -3541,8 +3547,11 @@ def admin_update_homepage_settings():
 
 # Helper function to send emails asynchronously
 def send_email_async(msg):
-    with app.app_context(): 
-        mail.send(msg)
+    try:
+        from utils.email_utils import send_email_async as improved_send_email_async
+        improved_send_email_async(mail, msg)
+    except Exception as e:
+        print(f"Error sending email: {str(e)}")
 
 @app.route('/admin/users/approve/<int:user_id>')
 @login_required
