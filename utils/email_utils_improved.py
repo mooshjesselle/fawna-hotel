@@ -129,24 +129,25 @@ def send_email_async_with_context(mail, msg, app):
                     finally:
                         socket.setdefaulttimeout(original_timeout)
                     
-                    # If Flask-Mail failed, try direct SMTP immediately
+                    # If Flask-Mail failed, try SendGrid API first (since SMTP is blocked on Render)
                     if not success:
-                        print("Trying direct SMTP fallback...")
-                        success = try_direct_smtp_sending(msg, app)
+                        print("Trying SendGrid API (SMTP is blocked on Render)...")
+                        from utils.simple_email_service import send_email_via_sendgrid_api
+                        success = send_email_via_sendgrid_api(
+                            ', '.join(msg.recipients), 
+                            msg.subject, 
+                            str(msg.html) if hasattr(msg, 'html') and msg.html else 'Email content',
+                            app
+                        )
                         if success:
-                            print("✅ Email sent successfully via fallback method")
+                            print("✅ Email sent successfully via SendGrid API")
                         else:
-                            print("❌ All SMTP methods failed, trying SendGrid API...")
-                            # Try SendGrid API as fallback
-                            from utils.simple_email_service import send_email_via_sendgrid_api
-                            success = send_email_via_sendgrid_api(
-                                ', '.join(msg.recipients), 
-                                msg.subject, 
-                                str(msg.html) if hasattr(msg, 'html') and msg.html else 'Email content',
-                                app
-                            )
-                            if not success:
-                                print("❌ SendGrid API failed, using simple fallback...")
+                            print("❌ SendGrid API failed, trying SMTP fallback...")
+                            success = try_direct_smtp_sending(msg, app)
+                            if success:
+                                print("✅ Email sent successfully via SMTP fallback")
+                            else:
+                                print("❌ All methods failed, using simple fallback...")
                                 from utils.simple_email_service import send_email_simple_fallback
                                 success = send_email_simple_fallback(
                                     ', '.join(msg.recipients), 
@@ -195,9 +196,9 @@ def send_email_async_with_context(mail, msg, app):
     # Add a timeout to prevent hanging
     def timeout_handler():
         import time
-        time.sleep(30)  # Wait 30 seconds
+        time.sleep(15)  # Wait 15 seconds
         if thread.is_alive():
-            print("⏰ Background email thread timed out after 30 seconds")
+            print("⏰ Background email thread timed out after 15 seconds")
     
     timeout_thread = threading.Thread(target=timeout_handler)
     timeout_thread.daemon = True
@@ -293,11 +294,11 @@ def try_smtp_provider(msg, app, server, port):
         else:
             email_msg.attach(MIMEText('Email content', 'plain'))
         
-        # Try to send
-        with smtplib.SMTP(server, port, timeout=15) as smtp_server:
+        # Try to send with very short timeout
+        with smtplib.SMTP(server, port, timeout=5) as smtp_server:
             if port == 465:
                 # SSL connection
-                smtp_server = smtplib.SMTP_SSL(server, port, timeout=15)
+                smtp_server = smtplib.SMTP_SSL(server, port, timeout=5)
             else:
                 # TLS connection
                 smtp_server.starttls()
