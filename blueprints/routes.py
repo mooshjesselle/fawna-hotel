@@ -223,8 +223,8 @@ def send_verification_email():
                                  code=verification_code)
         
         # Use async email sending to prevent timeouts
-        from utils.email_utils import send_email_async
-        send_email_async(mail, msg)
+        from utils.email_utils import send_email_async_with_context
+        send_email_async_with_context(mail, msg, app)
         
         return jsonify({
             'success': True,
@@ -3079,8 +3079,8 @@ def send_verification_email(email, code):
         msg.html = render_template('auth/email/reset_password_code.html', code=code)
         
         # Use async email sending to prevent timeouts
-        from utils.email_utils import send_email_async
-        send_email_async(mail, msg)
+        from utils.email_utils import send_email_async_with_context
+        send_email_async_with_context(mail, msg, app)
         return True
     except Exception as e:
         print(f"Error sending email: {str(e)}")
@@ -3548,8 +3548,8 @@ def admin_update_homepage_settings():
 # Helper function to send emails asynchronously
 def send_email_async(msg):
     try:
-        from utils.email_utils import send_email_async as improved_send_email_async
-        improved_send_email_async(mail, msg)
+        from utils.email_utils import send_email_async_with_context
+        send_email_async_with_context(mail, msg, app)
     except Exception as e:
         print(f"Error sending email: {str(e)}")
 

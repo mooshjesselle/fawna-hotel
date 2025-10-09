@@ -110,21 +110,48 @@ def send_email_with_flask_mail(mail, msg):
 def send_email_async(mail, msg):
     """Send email asynchronously to prevent timeouts"""
     def send_in_background():
-        try:
-            # Add timeout to the mail connection
-            import socket
-            original_timeout = socket.getdefaulttimeout()
-            socket.setdefaulttimeout(30)  # 30 second timeout
-            
+        from flask import current_app
+        with current_app.app_context():
             try:
-                mail.send(msg)
-                print("Email sent successfully")
-            finally:
-                socket.setdefaulttimeout(original_timeout)
-        except Exception as e:
-            print(f"Background email sending failed: {e}")
-            # Try alternative email sending method
-            try_alternative_email_sending(msg)
+                # Add timeout to the mail connection
+                import socket
+                original_timeout = socket.getdefaulttimeout()
+                socket.setdefaulttimeout(30)  # 30 second timeout
+                
+                try:
+                    mail.send(msg)
+                    print("Email sent successfully")
+                finally:
+                    socket.setdefaulttimeout(original_timeout)
+            except Exception as e:
+                print(f"Background email sending failed: {e}")
+                # Try alternative email sending method
+                try_alternative_email_sending(msg)
+    
+    thread = threading.Thread(target=send_in_background)
+    thread.daemon = True
+    thread.start()
+    return True
+
+def send_email_async_with_context(mail, msg, app):
+    """Send email asynchronously with proper application context"""
+    def send_in_background():
+        with app.app_context():
+            try:
+                # Add timeout to the mail connection
+                import socket
+                original_timeout = socket.getdefaulttimeout()
+                socket.setdefaulttimeout(30)  # 30 second timeout
+                
+                try:
+                    mail.send(msg)
+                    print("Email sent successfully")
+                finally:
+                    socket.setdefaulttimeout(original_timeout)
+            except Exception as e:
+                print(f"Background email sending failed: {e}")
+                # Try alternative email sending method
+                try_alternative_email_sending_with_context(msg, app)
     
     thread = threading.Thread(target=send_in_background)
     thread.daemon = True
@@ -140,31 +167,70 @@ def try_alternative_email_sending(msg):
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
         
-        # Create a simple text version of the email
-        simple_msg = MIMEMultipart()
-        simple_msg['From'] = current_app.config['MAIL_DEFAULT_SENDER']
-        simple_msg['To'] = ', '.join(msg.recipients)
-        simple_msg['Subject'] = msg.subject
+        with current_app.app_context():
+            # Create a simple text version of the email
+            simple_msg = MIMEMultipart()
+            simple_msg['From'] = current_app.config['MAIL_DEFAULT_SENDER']
+            simple_msg['To'] = ', '.join(msg.recipients)
+            simple_msg['Subject'] = msg.subject
+            
+            # Convert HTML to text if possible
+            if hasattr(msg, 'html') and msg.html:
+                import re
+                # Simple HTML to text conversion
+                text_content = re.sub(r'<[^>]+>', '', str(msg.html))
+                simple_msg.attach(MIMEText(text_content, 'plain'))
+            else:
+                simple_msg.attach(MIMEText('Email content', 'plain'))
+            
+            # Try to send using direct SMTP
+            with smtplib.SMTP(current_app.config['MAIL_SERVER'], 
+                              current_app.config['MAIL_PORT'], 
+                              timeout=30) as server:
+                if current_app.config.get('MAIL_USE_TLS'):
+                    server.starttls()
+                server.login(current_app.config['MAIL_USERNAME'], 
+                            current_app.config['MAIL_PASSWORD'])
+                server.send_message(simple_msg)
+                print("Alternative email sending successful")
+            
+    except Exception as e:
+        print(f"Alternative email sending also failed: {e}")
+
+def try_alternative_email_sending_with_context(msg, app):
+    """Try alternative email sending methods with proper application context"""
+    try:
+        # Try using direct SMTP connection as fallback
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
         
-        # Convert HTML to text if possible
-        if hasattr(msg, 'html') and msg.html:
-            import re
-            # Simple HTML to text conversion
-            text_content = re.sub(r'<[^>]+>', '', str(msg.html))
-            simple_msg.attach(MIMEText(text_content, 'plain'))
-        else:
-            simple_msg.attach(MIMEText('Email content', 'plain'))
-        
-        # Try to send using direct SMTP
-        with smtplib.SMTP(current_app.config['MAIL_SERVER'], 
-                          current_app.config['MAIL_PORT'], 
-                          timeout=30) as server:
-            if current_app.config.get('MAIL_USE_TLS'):
-                server.starttls()
-            server.login(current_app.config['MAIL_USERNAME'], 
-                        current_app.config['MAIL_PASSWORD'])
-            server.send_message(simple_msg)
-            print("Alternative email sending successful")
+        with app.app_context():
+            # Create a simple text version of the email
+            simple_msg = MIMEMultipart()
+            simple_msg['From'] = app.config['MAIL_DEFAULT_SENDER']
+            simple_msg['To'] = ', '.join(msg.recipients)
+            simple_msg['Subject'] = msg.subject
+            
+            # Convert HTML to text if possible
+            if hasattr(msg, 'html') and msg.html:
+                import re
+                # Simple HTML to text conversion
+                text_content = re.sub(r'<[^>]+>', '', str(msg.html))
+                simple_msg.attach(MIMEText(text_content, 'plain'))
+            else:
+                simple_msg.attach(MIMEText('Email content', 'plain'))
+            
+            # Try to send using direct SMTP
+            with smtplib.SMTP(app.config['MAIL_SERVER'], 
+                              app.config['MAIL_PORT'], 
+                              timeout=30) as server:
+                if app.config.get('MAIL_USE_TLS'):
+                    server.starttls()
+                server.login(app.config['MAIL_USERNAME'], 
+                            app.config['MAIL_PASSWORD'])
+                server.send_message(simple_msg)
+                print("Alternative email sending successful")
             
     except Exception as e:
         print(f"Alternative email sending also failed: {e}") 
