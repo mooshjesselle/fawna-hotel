@@ -216,12 +216,15 @@ def send_verification_email():
             'attempts': 0
         }
         
-        # Send verification email
-        msg = Message('Email Verification - FAWNA Hotel',
-                     recipients=[email])
-        msg.html = render_template('auth/email/verification_code.html',
-                                 code=verification_code)
-        mail.send(msg)
+        # Send verification email (provider-agnostic)
+        from utils.email_utils import send_html_email
+        html_body = render_template('auth/email/verification_code.html',
+                                    code=verification_code)
+        if not send_html_email(email, 'Email Verification - FAWNA Hotel', html_body):
+            return jsonify({
+                'success': False,
+                'message': 'Failed to send verification code. Please try again.'
+            }), 500
         
         return jsonify({
             'success': True,
