@@ -194,6 +194,7 @@ def try_direct_smtp_sending(msg, app):
             
             # Try alternative providers
             providers = [
+                ('smtp.sendgrid.net', 587),  # SendGrid (recommended for cloud)
                 ('smtp.gmail.com', 465),  # Gmail SSL
                 ('smtp.outlook.com', 587),  # Outlook
                 ('smtp.mail.yahoo.com', 587),  # Yahoo
