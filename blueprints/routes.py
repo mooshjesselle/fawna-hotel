@@ -216,30 +216,18 @@ def send_verification_email():
             'attempts': 0
         }
         
-        # Send verification email using the same method as forgot password
+        # Send verification email
         try:
-            from utils.email_utils import send_otp_email
+            msg = Message('Email Verification - FAWNA Hotel',
+                         recipients=[email])
+            msg.html = render_template('auth/email/verification_code.html',
+                                     code=verification_code)
             print(f"DEBUG: Attempting to send email to {email}")
-            
-            # Use the same email utility that works for forgot password
-            if send_otp_email(email, verification_code):
-                print(f"DEBUG: Email sent successfully to {email}")
-            else:
-                print(f"DEBUG: Email sending failed - using fallback")
-                # Return the verification code in the response for manual entry
-                return jsonify({
-                    'success': True,
-                    'message': f'Email service unavailable. Your verification code is: {verification_code}',
-                    'verification_code': verification_code
-                })
+            mail.send(msg)
+            print(f"DEBUG: Email sent successfully to {email}")
         except Exception as email_error:
             print(f"DEBUG: Email sending failed: {str(email_error)}")
-            # Return the verification code in the response for manual entry
-            return jsonify({
-                'success': True,
-                'message': f'Email service unavailable. Your verification code is: {verification_code}',
-                'verification_code': verification_code
-            })
+            raise email_error
         
         return jsonify({
             'success': True,
@@ -3149,29 +3137,6 @@ def debug_test_email():
             }
         })
         
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'error': str(e)
-        }), 500
-
-@app.route('/debug/get-verification-code')
-def debug_get_verification_code():
-    """Debug endpoint to get the current verification code for testing"""
-    try:
-        verification_data = session.get('email_verification')
-        if verification_data:
-            return jsonify({
-                'status': 'success',
-                'email': verification_data.get('email'),
-                'code': verification_data.get('code'),
-                'timestamp': verification_data.get('timestamp')
-            })
-        else:
-            return jsonify({
-                'status': 'no_code',
-                'message': 'No verification code in session'
-            })
     except Exception as e:
         return jsonify({
             'status': 'error',
