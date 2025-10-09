@@ -6,6 +6,7 @@ instance/
 flask_session/
 migrations/
 hotel_management.sql
+hotel_management_postgresql.sql
 
 # VS Code / OS
 .vscode/
