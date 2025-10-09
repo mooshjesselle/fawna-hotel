@@ -13,3 +13,5 @@ hotel_management.sql
 
 # Any nested folder you don’t want
 fawna-hotel/
+flask_session/
+flask_session_files/
