@@ -131,12 +131,20 @@ def send_email_async_with_context(mail, msg, app):
                 if not success:
                     print("Trying direct SMTP fallback...")
                     success = try_direct_smtp_sending(msg, app)
+                    if success:
+                        print("✅ Email sent successfully via fallback method")
+                    else:
+                        print("❌ All email methods failed")
                     
             except Exception as e:
                 print(f"Background email sending failed: {e}")
                 # Final fallback
                 if not success:
-                    try_direct_smtp_sending(msg, app)
+                    success = try_direct_smtp_sending(msg, app)
+                    if success:
+                        print("✅ Email sent successfully via final fallback")
+                    else:
+                        print("❌ All email methods failed in background thread")
     
     thread = threading.Thread(target=send_in_background)
     thread.daemon = True
