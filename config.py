@@ -12,9 +12,6 @@ class Config:
     MAIL_USERNAME = os.getenv('MAIL_USERNAME')
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD')
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_USERNAME')
-    # HTTP email provider (Resend) configuration
-    RESEND_API_KEY = os.getenv('RESEND_API_KEY')
-    EMAIL_FROM = os.getenv('EMAIL_FROM', os.getenv('MAIL_USERNAME') or 'no-reply@example.com')
 
     # Flask Configuration
     SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')
