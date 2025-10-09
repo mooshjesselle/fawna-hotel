@@ -150,6 +150,7 @@ def send_email_async_with_context(mail, msg, app):
     thread = threading.Thread(target=send_in_background)
     thread.daemon = True
     thread.start()
+    print(f"🧵 Background thread started with ID: {thread.ident}")
     return True
 
 def send_email_sync_with_fallback(mail, msg, app):
@@ -215,6 +216,16 @@ def try_smtp_provider(msg, app, server, port):
         from email.mime.text import MIMEText
         from email.mime.multipart import MIMEMultipart
         
+        # Check if credentials are available
+        username = app.config.get('MAIL_USERNAME')
+        password = app.config.get('MAIL_PASSWORD')
+        
+        if not username or not password:
+            print(f"❌ No email credentials configured for {server}:{port}")
+            return False
+            
+        print(f"🔐 Using credentials: {username[:3]}***@{username.split('@')[1] if '@' in username else 'unknown'}")
+        
         # Create email message
         email_msg = MIMEMultipart()
         email_msg['From'] = app.config['MAIL_DEFAULT_SENDER']
@@ -238,11 +249,11 @@ def try_smtp_provider(msg, app, server, port):
                 # TLS connection
                 smtp_server.starttls()
             
-            smtp_server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+            smtp_server.login(username, password)
             smtp_server.send_message(email_msg)
-            print(f"Email sent successfully via {server}:{port}")
+            print(f"✅ Email sent successfully via {server}:{port}")
             return True
             
     except Exception as e:
-        print(f"SMTP {server}:{port} failed: {e}")
+        print(f"❌ SMTP {server}:{port} failed: {e}")
         return False
