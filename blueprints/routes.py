@@ -2643,6 +2643,9 @@ def forgot_password():
                 
                 # Check if code matches
                 if verification_data['code'] == code:
+                    # Mark as verified and redirect to reset password
+                    verification_data['verified'] = True
+                    session['password_reset_verification'] = verification_data
                     return redirect(url_for('reset_password'))
                 else:
                     verification_data['attempts'] += 1
@@ -3085,16 +3088,29 @@ def add_cache_control_headers(response):
 
 def send_verification_email(email, code):
     try:
-        msg = Message(
-            subject='Password Reset Verification Code - FAWNA Hotel',
-            recipients=[email],
-            sender=app.config['MAIL_DEFAULT_SENDER']
-        )
-        msg.html = render_template('auth/email/reset_password_code.html', code=code)
-        mail.send(msg)
+        # Send verification email via SendGrid first; fallback to Flask-Mail if not configured
+        subject = 'Password Reset Verification Code - FAWNA Hotel'
+        html_body = render_template('auth/email/reset_password_code.html', code=code)
+
+        # If SendGrid API key is configured, do NOT fall back to SMTP (Render may block SMTP)
+        use_sendgrid = bool(current_app.config.get('SENDGRID_API_KEY'))
+        if use_sendgrid:
+            success = False
+            try:
+                success = send_email_via_sendgrid(email, subject, html_body)
+            except Exception as _e:
+                success = False
+            if not success:
+                print(f"Failed to send password reset email via SendGrid to {email}")
+                return False
+        else:
+            msg = Message(subject, recipients=[email])
+            msg.html = html_body
+            mail.send(msg)
+        
         return True
     except Exception as e:
-        print(f"Error sending email: {str(e)}")
+        print(f"Error sending password reset email: {str(e)}")
         return False
 
 def handle_expired_bookings():

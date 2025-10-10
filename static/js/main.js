@@ -2841,8 +2841,7 @@ let cartTotal = 0;
 // AUTO-COMPUTATION: The cart automatically calculates totals whenever quantities change
 // This includes: adding items, changing quantities, removing items, and clearing cart
 function addToCart(item) {
-    console.log('addToCart called with item:', item);
-    console.log('Current cart before adding:', cart);
+    // Adding item to cart
     
     const existingItem = cart.find(cartItem => cartItem.id === item.id);
     
@@ -2854,14 +2853,14 @@ function addToCart(item) {
         }
         existingItem.quantity += 1;
     } else {
-        console.log('Adding new item to cart:', item);
+        // Adding new item to cart
         cart.push({
             ...item,
             quantity: 1
         });
     }
     
-    console.log('Cart after adding item:', cart);
+    // Cart updated
     updateCartDisplay(); // Auto-computes total
     saveCartToStorage();
     showCartNotification('Item added to cart!');
@@ -2908,7 +2907,7 @@ function updateItemQuantity(itemId, newQuantity) {
 
 // Function to update cart item quantity (used by food menu quantity controls)
 function updateCartItemQuantity(item, newQuantity) {
-    console.log('updateCartItemQuantity called with:', item, 'newQuantity:', newQuantity);
+    // Updating cart item quantity
     
     const existingItem = cart.find(cartItem => cartItem.id === item.id);
     
@@ -2962,13 +2961,7 @@ function updateCartDisplay() {
     // Update cart total
     cartTotal = cart.reduce((sum, item) => sum + (parseFloat(item.price) * item.quantity), 0);
     
-    // Debug logging
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    console.log('Cart updated:', {
-        items: cart.map(item => ({ name: item.name, quantity: item.quantity, price: item.price, total: parseFloat(item.price) * item.quantity })),
-        cartTotal: cartTotal,
-        totalItems: totalItems
-    });
+    // Cart updated successfully
     
     // Update cart total display if cart view is open
     updateCartTotalDisplay();
@@ -2980,45 +2973,32 @@ function updateCartDisplay() {
 function updateCartCountBadge() {
     const totalItems = cart.length; // Changed from cart.reduce((sum, item) => sum + item.quantity, 0)
     
-    console.log('updateCartCountBadge called with cart:', cart, 'totalItems (number of unique items):', totalItems);
-    
     // Try multiple methods to find and update the cart count badge
     let cartItemCount = document.getElementById('cartItemCount');
     
     if (cartItemCount) {
         cartItemCount.textContent = totalItems;
         cartItemCount.style.display = totalItems > 0 ? 'flex' : 'none';
-        console.log('✅ Updated cart count badge by ID:', totalItems);
     } else {
-        console.log('❌ Cart count badge not found by ID, trying alternative methods...');
-        
         // Try to find by other selectors
         const cartButtons = document.querySelectorAll('#viewCartBtn, [id*="viewCartBtn"]');
-        console.log('Found cart buttons:', cartButtons.length);
         
         cartButtons.forEach((button, index) => {
             const badge = button.querySelector('span[id*="cartItemCount"], span[style*="position:absolute"]');
             if (badge) {
                 badge.textContent = totalItems;
                 badge.style.display = totalItems > 0 ? 'flex' : 'none';
-                console.log(`✅ Updated cart count badge in button ${index}:`, totalItems);
-            } else {
-                console.log(`❌ No badge found in button ${index}`);
             }
         });
         
         // Also try to find any span with cart count styling
         const allCartCounts = document.querySelectorAll('span[style*="position:absolute"][style*="background:#ff4757"]');
-        console.log('Found cart count badges by styling:', allCartCounts.length);
         
         allCartCounts.forEach((element, index) => {
             element.textContent = totalItems;
             element.style.display = totalItems > 0 ? 'flex' : 'none';
-            console.log(`✅ Updated cart count badge ${index} by styling:`, totalItems);
         });
     }
-    
-    console.log('🎯 Cart count badge update completed. Total items (unique):', totalItems);
 }
 
 function updateCartTotalDisplay() {
@@ -3225,7 +3205,7 @@ function loadCartFromStorage() {
     if (savedCart) {
         try {
         cart = JSON.parse(savedCart);
-            console.log('Cart loaded from storage:', cart);
+            // Cart loaded from storage
         updateCartDisplay();
         } catch (error) {
             console.error('Error parsing cart from storage:', error);
@@ -3233,7 +3213,7 @@ function loadCartFromStorage() {
             localStorage.removeItem('foodCart');
         }
     } else {
-        console.log('No cart data found in storage');
+        // No cart data found in storage
         cart = [];
     }
 }
@@ -4061,7 +4041,7 @@ function createErrorModal() {
 
 // Load cart from storage when page loads
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, loading cart from storage...');
+    // DOM loaded, initializing cart
     loadCartFromStorage();
     
     // Initialize food menu modal transition properties
@@ -4077,18 +4057,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Debug cart state
     setTimeout(() => {
-        debugCart();
+        // Debug removed for security
     }, 200);
     
     // Update cart count badge after a short delay to ensure all elements are ready
     setTimeout(() => {
-        console.log('Updating cart count badge after DOM load...');
+        // Updating cart count badge after DOM load
         updateCartCountBadge();
     }, 100);
     
     // Also update after a longer delay to catch any late-loading elements
     setTimeout(() => {
-        console.log('Final cart count badge update after DOM load...');
+        // Final cart count badge update after DOM load
         updateCartCountBadge();
     }, 500);
 });
@@ -4210,8 +4190,8 @@ function addFoodMenuQuantityEventListeners() {
 
 // Function to update quantity displays in food menu
 function updateFoodMenuQuantityDisplays() {
-    console.log('updateFoodMenuQuantityDisplays called');
-    console.log('Current cart:', cart);
+    // Updating food menu quantity displays
+    // Current cart state
     
     document.querySelectorAll('.quantity-display').forEach(display => {
         const itemId = display.getAttribute('data-id');
@@ -4231,27 +4211,15 @@ function updateFoodMenuQuantityDisplays() {
     });
 }
 
-// Debug function to help troubleshoot cart issues
-function debugCart() {
-    console.log('=== CART DEBUG INFO ===');
-    console.log('Current cart array:', cart);
-    console.log('Cart length (number of unique items):', cart.length);
-    console.log('Total quantity in cart:', cart.reduce((sum, item) => sum + item.quantity, 0));
-    console.log('LocalStorage foodCart:', localStorage.getItem('foodCart'));
-    console.log('Cart count badges found:', document.querySelectorAll('[id*="cartItemCount"], .cart-count-badge').length);
-    console.log('Floating cart count badge:', document.getElementById('floatingCartCount'));
-    console.log('Food menu cart count badge:', document.getElementById('cartItemCount'));
-    console.log('========================');
-}
+// Debug function removed for security
 
-// Make debugCart available globally for browser console debugging
-window.debugCart = debugCart;
+// Make functions available globally for debugging (removed debugCart for security)
 window.updateCartCountBadge = updateCartCountBadge;
 window.loadCartFromStorage = loadCartFromStorage;
 
 // Function to show GCash QR Modal
 function showGcashQrModal() {
-    console.log('showGcashQrModal called');
+    // Showing GCash QR modal
     
     // Get the food service IP from window variable or use default
     let foodServiceIP = window.FOOD_SERVICE_IP || '192.168.1.12';

@@ -10,46 +10,64 @@ def generate_otp():
     return ''.join([str(random.randint(0, 9)) for _ in range(6)])
 
 def send_otp_email(email, otp):
-    sender_email = current_app.config['MAIL_USERNAME']
-    sender_password = current_app.config['MAIL_PASSWORD']
-
-    message = MIMEMultipart()
-    message["From"] = sender_email
-    message["To"] = email
-    message["Subject"] = "FAWNA Hotel - Email Verification OTP"
-
-    body = f"""
-    <html>
-        <body>
-            <h2>Welcome to FAWNA Hotel!</h2>
-            <p>Your email verification OTP is: <strong>{otp}</strong></p>
-            <p>This OTP will expire in 10 minutes.</p>
-            <p>If you didn't request this OTP, please ignore this email.</p>
-        </body>
-    </html>
-    """
-    
-    message.attach(MIMEText(body, "html"))
-
     try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
-            server.login(sender_email, sender_password)
-            server.send_message(message)
+        # Use SendGrid for OTP emails to avoid DMARC issues
+        subject = 'FAWNA Hotel - Email Verification OTP'
+        html_body = f"""
+        <html>
+            <body>
+                <h2>Welcome to FAWNA Hotel!</h2>
+                <p>Your email verification OTP is: <strong>{otp}</strong></p>
+                <p>This OTP will expire in 10 minutes.</p>
+                <p>If you didn't request this OTP, please ignore this email.</p>
+            </body>
+        </html>
+        """
+
+        # If SendGrid API key is configured, use SendGrid; otherwise fall back to SMTP
+        use_sendgrid = bool(current_app.config.get('SENDGRID_API_KEY'))
+        if use_sendgrid:
+            success = False
+            try:
+                success = send_email_via_sendgrid(email, subject, html_body)
+            except Exception as _e:
+                success = False
+            if not success:
+                print(f"Failed to send OTP email via SendGrid to {email}")
+                return False
+        else:
+            # Fallback to SMTP if SendGrid not configured
+            sender_email = current_app.config['MAIL_USERNAME']
+            sender_password = current_app.config['MAIL_PASSWORD']
+
+            message = MIMEMultipart()
+            message["From"] = sender_email
+            message["To"] = email
+            message["Subject"] = subject
+            message.attach(MIMEText(html_body, "html"))
+
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+                server.login(sender_email, sender_password)
+                server.send_message(message)
+        
         return True
     except Exception as e:
-        print(f"Error sending email: {e}")
+        print(f"Error sending OTP email: {e}")
         return False
 
 def send_email_via_sendgrid(to_email, subject, html_body):
     api_key = current_app.config.get('SENDGRID_API_KEY', '')
-    from_email = current_app.config.get('SENDGRID_FROM_EMAIL', current_app.config.get('MAIL_DEFAULT_SENDER'))
+    from_email = current_app.config.get('SENDGRID_FROM_EMAIL', 'noreply@fawnahotel.fwh.is')
+    from_name = current_app.config.get('SENDGRID_FROM_NAME', 'FAWNA Hotel')
+    reply_to_email = current_app.config.get('SENDGRID_REPLY_TO', 'fawnahotel@gmail.com')
+    
     if not api_key or not from_email:
         return False
     try:
         payload = {
             "personalizations": [{"to": [{"email": to_email}]}],
-            "from": {"email": from_email, "name": "FAWNA Hotel"},
-            "reply_to": {"email": from_email, "name": "FAWNA Hotel"},
+            "from": {"email": from_email, "name": from_name},
+            "reply_to": {"email": reply_to_email, "name": from_name},
             "subject": subject,
             "content": [
                 {"type": "text/plain", "value": "This email contains HTML content. If you see this, please enable HTML emails."},
